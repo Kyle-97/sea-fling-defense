@@ -18,7 +18,7 @@ export const GameState = {
     dragCurrentPos: { x: 0, y: 0 },
     
     // --- Reload State ---
-    lastFireTime: 0, // Track when we last shot
+    lastFireTime: 0, 
     // --------------------
 
     // Lists
@@ -41,7 +41,12 @@ export const GameState = {
         bilgeLevel: 0, 
         bilgeCrew: 0, 
         hasCaptain: false,
-        reloadLevel: 0, // Track reload upgrades
+        
+        // --- NEW MAIN CANNON STATE ---
+        mainCannonLevel: 0, // Upgrade Level (0 to 5)
+        mainCannonCrew: 0,  // Current Crew assigned
+        // -----------------------------
+
         sinking: false,
         sinkProgress: 0,
         sinkAngle: 0
@@ -56,7 +61,10 @@ export const GameState = {
         this.ship.bilgeLevel = 0; 
         this.ship.sinking = false; 
         this.ship.hasCaptain = false; 
-        this.ship.reloadLevel = 0; 
+        
+        this.ship.mainCannonLevel = 0; 
+        this.ship.mainCannonCrew = 0; 
+        
         this.ship.rotation = 0;
         this.gold = 0; 
         this.wave = 1; 

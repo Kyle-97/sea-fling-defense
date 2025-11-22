@@ -5,12 +5,30 @@ import { playBoom, playCrunch } from '../systems/Audio.js';
 import { updateHUD } from '../systems/UI.js';
 import { Particle } from './Particle.js';
 
-// --- NEW HELPER ---
-export function getHeroReloadTime() {
-    // Base 1.5s, -0.2s per level. Min 0.2s.
-    return Math.max(200, 1500 - (GameState.ship.reloadLevel * 200));
+// --- NEW STATS CALCULATOR ---
+export function getMainCannonStats() {
+    const crew = GameState.ship.mainCannonCrew;
+    
+    // Base Stats (0 Crew)
+    // Slower reload, lower damage
+    let cooldown = 2500; 
+    let damage = 10; 
+    let maxSpeed = 18; // Controls max range
+    let powerScale = 20; // Controls drag sensitivity
+
+    // Crew Bonuses
+    // 1 Crew (Level 0 base) immediately gives a big boost
+    cooldown -= (crew * 400); 
+    damage += (crew * 8); 
+    maxSpeed += (crew * 2.5); 
+    powerScale += (crew * 2);
+
+    // Hard Caps
+    cooldown = Math.max(250, cooldown); 
+    
+    return { cooldown, damage, maxSpeed, powerScale };
 }
-// ------------------
+// ----------------------------
 
 export function updateShipStats() {
     const ship = GameState.ship;
@@ -111,7 +129,9 @@ export function updateCrewLogistics() {
     let availableCrew = ship.crew;
     let crewAssignments = new Array(ship.cannons.length).fill(0);
     let bilgeAssigned = 0;
+    let mainGunAssigned = 0;
 
+    // 1. Priority: Bilge
     if (ship.bilgeLevel > 0 && ship.hp < ship.maxHp && availableCrew > 0) {
         const hpDeficitPct = 1 - (ship.hp / ship.maxHp);
         let neededForBilge = Math.ceil(availableCrew * hpDeficitPct * 1.5); 
@@ -128,11 +148,20 @@ export function updateCrewLogistics() {
     }
     ship.bilgeCrew = bilgeAssigned;
 
-    if (availableCrew > 0 && ship.cannons.length > 0) {
-        // Improved Logic from previous step: Prioritize active targets
-        let activeIndices = [];
-        let idleIndices = [];
+    // 2. Priority: Main Cannon
+    // Capacity is Level + 1 (So Level 0 = 1 slot)
+    if (availableCrew > 0) {
+        const capacity = ship.mainCannonLevel + 1;
+        mainGunAssigned = Math.min(availableCrew, capacity);
+        availableCrew -= mainGunAssigned;
+    }
+    ship.mainCannonCrew = mainGunAssigned;
 
+    // 3. Priority: Auto Cannons
+    let activeIndices = [];
+    let idleIndices = [];
+
+    if (ship.cannons.length > 0) {
         ship.cannons.forEach((cannon, idx) => {
             if (checkIfCannonHasTarget(cannon, ship.slots[cannon.slotIndex])) {
                 activeIndices.push(idx);
@@ -156,6 +185,7 @@ export function updateCrewLogistics() {
         }
     }
 
+    // Apply Logic
     ship.cannons.forEach((cannon, i) => {
         if(!ship.slots[cannon.slotIndex]) return;
         const crewCount = crewAssignments[i];
@@ -174,7 +204,10 @@ export function updateCrewLogistics() {
         }
     });
     
-    document.getElementById('idleCrew').innerText = ship.bilgeCrew > 0 ? `Bilging: ${ship.bilgeCrew}` : '0';
+    // Update HUD Text
+    const idle = Math.max(0, availableCrew);
+    // Shows "Main: [Current]/[Max]"
+    document.getElementById('idleCrew').innerText = `Idle: ${idle} | Main: ${ship.mainCannonCrew}/${ship.mainCannonLevel + 1}`;
 }
 
 function checkIfCannonHasTarget(cannon, slot) {

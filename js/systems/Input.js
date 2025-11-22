@@ -3,7 +3,7 @@ import { GameState } from '../state.js';
 import { Projectile } from '../entities/Projectile.js';
 import { playBoom } from './Audio.js';
 import { spawnFloatingText } from './UI.js';
-import { getHeroReloadTime } from '../entities/Ship.js'; // Import the helper
+import { getMainCannonStats } from '../entities/Ship.js';
 
 export function initInput(canvas) {
     // Mouse Events
@@ -52,38 +52,46 @@ function moveDrag(e) {
 function endDrag(e) {
     if (!GameState.isDraggingAmmo) return;
     
-    // --- RELOAD CHECK ---
+    // --- DYNAMIC STATS CHECK ---
+    const stats = getMainCannonStats();
+    // ---------------------------
+
     const now = Date.now();
-    const cooldownMs = getHeroReloadTime(); // Use shared helper
-    
-    if (now - GameState.lastFireTime < cooldownMs) {
+    // 1. Reload Check using dynamic cooldown
+    if (now - GameState.lastFireTime < stats.cooldown) {
         spawnFloatingText(GameState.ship.x, GameState.ship.y - 50, "RELOADING...", "#9ca3af");
         GameState.isDraggingAmmo = false;
         return;
     }
-    // --------------------
 
+    // 2. Physics & Power
     const dt = now - GameState.dragStartPos.time;
     const dx = GameState.dragCurrentPos.x - GameState.dragStartPos.x;
     const dy = GameState.dragCurrentPos.y - GameState.dragStartPos.y;
     
-    // Physics Calculation (Fling logic)
     const timeFactor = Math.max(dt, 40); 
-    const power = 25; // Slower projectiles
-    let vx = (dx / timeFactor) * power; 
-    let vy = (dy / timeFactor) * power;
+    
+    // Use dynamic powerScale
+    let vx = (dx / timeFactor) * stats.powerScale; 
+    let vy = (dy / timeFactor) * stats.powerScale;
     
     const mag = Math.hypot(vx, vy);
     
     if (mag > 3) { 
-        const maxSpeed = 10;
-        if (mag > maxSpeed) { 
-            const ratio = maxSpeed / mag; 
+        // Use dynamic maxSpeed (range cap)
+        if (mag > stats.maxSpeed) { 
+            const ratio = stats.maxSpeed / mag; 
             vx *= ratio; 
             vy *= ratio; 
         }
         
-        GameState.projectiles.push(new Projectile(GameState.ship.x, GameState.ship.y, vx, vy));
+        // Use dynamic damage
+        const p = new Projectile(GameState.ship.x, GameState.ship.y, vx, vy, false, stats.damage);
+        
+        // Visual feedback for powerful shots
+        if (stats.damage > 20) { p.size = 10; }
+        
+        GameState.projectiles.push(p);
         playBoom();
         GameState.lastFireTime = now; 
     }

@@ -1,9 +1,7 @@
 // Renderer system for Sea Fling Defense
 import { CONFIG } from '../constants.js';
 import { GameState } from '../state.js';
-import { getHeroReloadTime } from '../entities/Ship.js';
-
-// --- Main Render Loop ---
+import { getMainCannonStats } from '../entities/Ship.js'; // Use the new stats for reload bar
 
 export function drawGame(ctx, canvas) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -17,26 +15,20 @@ export function drawGame(ctx, canvas) {
     } else {
         drawSea(ctx, canvas);
         drawShip(ctx);
-        drawReloadBar(ctx); // <--- NEW: Draw HUD elements relative to ship
+        drawReloadBar(ctx); 
         
-        // Draw Entities
         GameState.splashes.forEach(s => drawSplash(ctx, s));
         GameState.enemies.forEach(e => drawEnemy(ctx, e));
-        
         GameState.projectiles.forEach(p => drawProjectile(ctx, p));
         GameState.enemyProjectiles.forEach(p => drawProjectile(ctx, p));
-        
         GameState.particles.forEach(p => drawParticle(ctx, p));
     }
 
-    // UI Layers (Guide lines)
     if (GameState.isDraggingAmmo && !GameState.inMenu && !GameState.inPort) {
         drawDragLine(ctx);
     }
 }
 
-// --- Backgrounds ---
-// ... (drawSea, drawPortScenery, drawPalmTree remain unchanged) ...
 let wavesOffset = 0;
 function drawSea(ctx, canvas) {
     wavesOffset = (wavesOffset + 1) % 40;
@@ -96,8 +88,6 @@ function drawPalmTree(ctx, x, y, scale) {
     ctx.restore();
 }
 
-// --- Entities ---
-
 function drawShip(ctx) {
     const ship = GameState.ship;
     ctx.save();
@@ -114,7 +104,6 @@ function drawShip(ctx) {
         ctx.rotate(ship.rotation);
     }
 
-    // Range indicators
     if (!ship.sinking) {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
         ship.slots.forEach(slot => {
@@ -146,13 +135,11 @@ function drawShip(ctx) {
             ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill(); ctx.fillRect(0, -4, 15, 8); 
         }
         
-        // Reload Bar
         if (cannon.loaded < 100) {
             ctx.fillStyle = 'red'; ctx.fillRect(-10, -15, 20, 4); 
             ctx.fillStyle = '#0f0'; ctx.fillRect(-10, -15, 20 * (cannon.loaded/100), 4);
         }
         
-        // Crew Dots
         if (cannon.assignedCrew > 0) {
             ctx.fillStyle = 'white';
             for(let c=0; c<cannon.assignedCrew; c++) { 
@@ -162,6 +149,19 @@ function drawShip(ctx) {
         ctx.restore();
     });
 
+    // --- DRAW MAIN CANNON CREW ---
+    if (ship.mainCannonCrew > 0) {
+        ctx.fillStyle = '#fbbf24'; // Amber
+        for(let i=0; i<ship.mainCannonCrew; i++) {
+            ctx.beginPath();
+            const ox = (i % 2 === 0 ? -6 : 6);
+            const oy = -20 + (Math.floor(i/2) * 10);
+            ctx.arc(ox, oy, 3, 0, Math.PI*2); 
+            ctx.fill();
+        }
+    }
+    // -----------------------------
+
     // Bilge Crew
     if (ship.bilgeCrew > 0) {
         ctx.fillStyle = '#3b82f6';
@@ -170,7 +170,6 @@ function drawShip(ctx) {
         }
     }
 
-    // Touch Guide
     if (!ship.sinking && !GameState.inMenu && !GameState.inPort) {
         ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(3, 3, 10, 0, Math.PI*2); ctx.fill();
@@ -179,12 +178,12 @@ function drawShip(ctx) {
     ctx.restore();
 }
 
-// --- NEW FUNCTION ---
 function drawReloadBar(ctx) {
     if(GameState.ship.sinking) return;
 
     const now = Date.now();
-    const cooldownTotal = getHeroReloadTime();
+    const stats = getMainCannonStats();
+    const cooldownTotal = stats.cooldown;
     const timeSinceFire = now - GameState.lastFireTime;
     let pct = timeSinceFire / cooldownTotal;
     if (pct > 1) pct = 1;
@@ -192,28 +191,24 @@ function drawReloadBar(ctx) {
     const barW = 50;
     const barH = 6;
     const x = GameState.ship.x - barW/2;
-    const y = GameState.ship.y + 90; // Draw below ship
+    const y = GameState.ship.y + 90; 
 
-    // Background
-    ctx.fillStyle = '#374151'; // dark gray
+    ctx.fillStyle = '#374151'; 
     ctx.fillRect(x, y, barW, barH);
 
-    // Foreground
     if (pct >= 1) {
-        ctx.fillStyle = '#22c55e'; // bright green
+        ctx.fillStyle = '#22c55e'; 
     } else {
-        ctx.fillStyle = '#eab308'; // yellow
+        ctx.fillStyle = '#eab308'; 
     }
     ctx.fillRect(x, y, barW * pct, barH);
 
-    // Border
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 1;
     ctx.strokeRect(x, y, barW, barH);
 }
-// --------------------
 
-// ... (drawEnemy, drawProjectile, drawSplash, drawParticle, drawDragLine remain unchanged) ...
+// ... (rest of entities unchanged)
 function drawEnemy(ctx, enemy) {
     if (enemy.dead) return;
     const ship = GameState.ship;

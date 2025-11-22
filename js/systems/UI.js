@@ -9,10 +9,13 @@ const SHOP_ITEMS = [
     { id: 'bilge', name: 'Bilge Pump', cost: 300, icon: '🪣', type: 'upgrade', action: () => {
         GameState.ship.bilgeLevel++; return true;
     }},
-    { id: 'reload', name: 'Fast Load', cost: 500, icon: '⏱️', type: 'upgrade', action: () => {
-        if(GameState.ship.reloadLevel < 7) { GameState.ship.reloadLevel++; return true; }
+    // --- NEW ITEM ---
+    { id: 'maingun', name: 'Main Gun', cost: 500, icon: '☄️', type: 'upgrade', action: () => {
+        // Adds a slot. Max level 5.
+        if(GameState.ship.mainCannonLevel < 5) { GameState.ship.mainCannonLevel++; return true; }
         return false;
     }},
+    // ----------------
     { id: 'cannon', name: 'Cannon', cost: 250, icon: '💣', type: 'upgrade', action: () => {
         const emptySlot = GameState.ship.slots.findIndex((s, i) => s.type === 'cannon' && !GameState.ship.cannons.some(c => c.slotIndex === i));
         if (emptySlot !== -1) { GameState.ship.cannons.push({ loaded: 0, slotIndex: emptySlot }); return true; }
@@ -66,7 +69,7 @@ export function initShop() {
             if(item.id === 'crew') val = GameState.ship.crew;
             if(item.id === 'ship') val = GameState.ship.tier;
             if(item.id === 'bilge') val = GameState.ship.bilgeLevel;
-            if(item.id === 'reload') val = GameState.ship.reloadLevel;
+            if(item.id === 'maingun') val = GameState.ship.mainCannonLevel; // Show current level
             countHTML = `<div class="owned-count">${val}</div>`; 
         }
 
@@ -75,7 +78,7 @@ export function initShop() {
         let isDisabled = GameState.gold < item.cost;
         if(item.id === 'ship' && GameState.ship.tier >= 3) isDisabled = true;
         if(item.id === 'captain' && GameState.ship.hasCaptain) isDisabled = true;
-        if(item.id === 'reload' && GameState.ship.reloadLevel >= 7) isDisabled = true;
+        if(item.id === 'maingun' && GameState.ship.mainCannonLevel >= 5) isDisabled = true;
         if(item.id === 'cannon' || item.id === 'swivel') {
             const hasSlot = GameState.ship.slots.some((s, i) => s.type === item.id && !GameState.ship.cannons.some(c => c.slotIndex === i));
             if(!hasSlot) isDisabled = true;
