@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sea Fling: Captain's Defense</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="ui-layer">
+        <div class="hud" id="hud" style="display: none;">
+            <div>
+                <div class="text-yellow-400 mb-1">GOLD: <span id="goldDisplay">0</span></div>
+                <div class="text-red-400 mb-1">HULL: <span id="hpDisplay">100</span>%</div>
+                <div class="text-white text-xs">CREW: <span id="crewDisplay">0</span> <span class="text-gray-400">(Idle:<span id="idleCrew">0</span>)</span></div>
+            </div>
+            <div class="controls-top">
+                <button class="icon-btn" id="musicBtn">🎵</button>
+                <button class="icon-btn" id="pauseBtn">⏸️</button>
+            </div>
+            <div class="text-right">
+                <div class="text-blue-300 mb-2">WAVE: <span id="waveDisplay">1</span></div>
+                <div class="text-gray-300 text-xs">ENEMIES: <span id="enemyCount">0</span></div>
+            </div>
+        </div>
+
+        <div class="port-overlay" id="portUI">
+            <div class="port-header">
+                <span>PORT</span>
+                <div class="text-right">
+                    <div class="text-xs text-yellow-400">GOLD: <span id="portGold">0</span></div>
+                </div>
+            </div>
+            <div class="shop-grid" id="shopGrid"></div>
+            <div class="sail-btn" id="sailBtn">SET SAIL!</div>
+        </div>
+    </div>
+    
+    <div id="touchGuide" class="touch-guide"></div>
+    <div id="portNotif">WAVE START!</div>
+
+    <div id="startMenu" class="overlay-screen" style="display: flex; background: rgba(0,0,0,0.7);">
+        <h1 class="text-4xl md:text-5xl font-bold text-yellow-400 mb-2" style="font-family: 'Press Start 2P'; text-shadow: 3px 3px 0 #000;">SEA FLING</h1>
+        <p class="text-white mb-8 font-bold text-sm tracking-widest">CAPTAIN'S DEFENSE</p>
+        
+        <div class="flex flex-col w-64 gap-2">
+            <button data-wave="1" class="menu-btn btn-lvl1">WAVE 1<br><span class="text-[10px] opacity-80">New Game</span></button>
+            <button data-wave="10" class="menu-btn btn-lvl2">WAVE 10<br><span class="text-[10px] opacity-80">+3,000 Gold</span></button>
+            <button data-wave="20" class="menu-btn btn-lvl3">WAVE 20<br><span class="text-[10px] opacity-80">+8,000 Gold</span></button>
+            <button data-wave="30" class="menu-btn btn-lvl4">WAVE 30<br><span class="text-[10px] opacity-80">+15,000 Gold</span></button>
+            <button data-wave="40" class="menu-btn btn-lvl5">WAVE 40<br><span class="text-[10px] opacity-80">+25,000 Gold</span></button>
+        </div>
+    </div>
+
+    <div id="pauseScreen" class="overlay-screen">
+        <h1 class="text-3xl font-bold text-yellow-500 mb-8" style="font-family: 'Press Start 2P'">ANCHORED</h1>
+        <button id="resumeBtn" class="px-8 py-4 bg-blue-600 border-2 border-white hover:bg-blue-500 text-white font-bold rounded">HOIST SAILS</button>
+    </div>
+
+    <div id="gameOverScreen" class="overlay-screen">
+        <h1 class="text-4xl font-bold text-red-500 mb-4" style="font-family: 'Press Start 2P'">SUNK!</h1>
+        <p class="text-xl mb-8">The depths claim another.</p>
+        <p class="mb-8 text-yellow-400">Waves Survived: <span id="finalWave">0</span></p>
+        <button id="resetBtn" class="px-8 py-4 bg-green-600 border-2 border-white text-white font-bold rounded">SET SAIL AGAIN</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

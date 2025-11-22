@@ -1,0 +1,235 @@
+/* Main stylesheet for Sea Fling Defense */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap');
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #1e3a8a;
+    font-family: 'Roboto', sans-serif;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+.ui-layer {
+    position: absolute;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.hud {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    text-shadow: 2px 2px 0 #000;
+    color: white;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));
+    height: 90px;
+    pointer-events: none;
+}
+
+.controls-top {
+    pointer-events: auto;
+    display: flex;
+    gap: 10px;
+}
+
+.icon-btn {
+    background: rgba(0,0,0,0.5);
+    border: 2px solid white;
+    color: white;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.icon-btn:active { transform: scale(0.9); }
+
+/* PORT UI */
+.port-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    background: rgba(20, 10, 5, 0.98);
+    border-top: 4px solid #a16207;
+    display: none;
+    flex-direction: column;
+    pointer-events: auto;
+    z-index: 40;
+    padding: 10px;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
+}
+
+.port-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #fcd34d;
+    font-family: 'Press Start 2P', cursive;
+    margin-bottom: 10px;
+    padding: 0 5px;
+}
+
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+    gap: 8px;
+    overflow-y: auto;
+    padding: 2px;
+    flex-grow: 1;
+}
+
+.shop-btn {
+    background: #fcd34d;
+    border: 2px solid #78350f;
+    border-radius: 4px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    min-height: 80px;
+    transition: transform 0.1s;
+    color: #451a03;
+    font-weight: bold;
+    font-size: 9px;
+    position: relative;
+    text-align: center;
+}
+
+.shop-btn:active { transform: scale(0.95); }
+.shop-btn.disabled { filter: grayscale(100%); opacity: 0.5; pointer-events: none; }
+
+.shop-icon { font-size: 20px; margin-bottom: 2px; }
+.price { color: #991b1b; font-weight: 800; margin-top: 2px; }
+
+.owned-count { 
+    position: absolute; top: -5px; right: -5px; 
+    background: #ef4444; color: white; border-radius: 50%; 
+    width: 18px; height: 18px; display: flex; 
+    align-items: center; justify-content: center; font-size: 9px;
+    border: 1px solid white;
+    z-index: 2;
+}
+
+.sail-btn {
+    background: #15803d;
+    color: white;
+    font-family: 'Press Start 2P', cursive;
+    padding: 15px;
+    text-align: center;
+    border-radius: 5px;
+    margin-top: 10px;
+    cursor: pointer;
+    border: 2px solid #4ade80;
+    font-size: 14px;
+    text-shadow: 1px 1px 0 #000;
+}
+.sail-btn:active { transform: translateY(2px); }
+
+.overlay-screen {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    z-index: 50;
+    pointer-events: auto;
+    text-align: center;
+}
+
+.floating-text {
+    position: absolute;
+    font-weight: bold;
+    pointer-events: none;
+    animation: floatUp 1s ease-out forwards;
+    text-shadow: 1px 1px 0 #000;
+    font-family: 'Press Start 2P';
+    font-size: 12px;
+    z-index: 100;
+    white-space: nowrap;
+}
+
+@keyframes floatUp {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-40px) scale(1.2); opacity: 0; }
+}
+
+@keyframes pulse-ring {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }
+    100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+.touch-guide {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.5);
+    pointer-events: none;
+    animation: pulse-ring 1.5s infinite;
+    display: none;
+    left: 50%;
+    top: 60%;
+    transform: translate(-50%, -50%);
+}
+
+#portNotif {
+    position: absolute;
+    top: 30%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Press Start 2P';
+    color: #fcd34d;
+    text-shadow: 3px 3px 0 #000;
+    font-size: 28px;
+    text-align: center;
+    display: none;
+    pointer-events: none;
+    width: 100%;
+    z-index: 60;
+}
+
+/* Start Menu Button Styles */
+.menu-btn {
+    width: 100%;
+    padding: 15px;
+    margin: 5px 0;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px;
+    color: white;
+    border: 2px solid white;
+    border-radius: 8px;
+    cursor: pointer;
+    text-shadow: 1px 1px 0 #000;
+    transition: transform 0.1s;
+}
+.menu-btn:active { transform: scale(0.98); }
+.btn-lvl1 { background-color: #2563eb; border-color: #60a5fa; }
+.btn-lvl2 { background-color: #059669; border-color: #34d399; }
+.btn-lvl3 { background-color: #d97706; border-color: #fbbf24; }
+.btn-lvl4 { background-color: #dc2626; border-color: #f87171; }
+.btn-lvl5 { background-color: #7f1d1d; border-color: #991b1b; }
