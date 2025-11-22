@@ -2,14 +2,14 @@
 import { GameState } from '../state.js';
 import { Projectile } from '../entities/Projectile.js';
 import { playBoom } from './Audio.js';
+import { spawnFloatingText } from './UI.js';
+import { getMainCannonStats } from '../entities/Ship.js';
 
 export function initInput(canvas) {
-    // Mouse Events
     canvas.addEventListener('mousedown', startDrag);
     window.addEventListener('mousemove', moveDrag);
     window.addEventListener('mouseup', endDrag);
 
-    // Touch Events
     canvas.addEventListener('touchstart', (e) => {
         if(e.target === canvas) e.preventDefault();
         startDrag(e.changedTouches[0]);
@@ -29,12 +29,9 @@ function startDrag(e) {
     const x = e.clientX || e.pageX;
     const y = e.clientY || e.pageY;
     
-    // Check if touching near ship
     const dist = Math.hypot(x - GameState.ship.x, y - GameState.ship.y);
     if (dist < 100) { 
         GameState.isDraggingAmmo = true;
-        
-        // Hide the tutorial guide if it exists
         const guide = document.getElementById('touchGuide');
         if(guide) guide.style.display = 'none';
         
@@ -53,32 +50,39 @@ function moveDrag(e) {
 function endDrag(e) {
     if (!GameState.isDraggingAmmo) return;
     
+    const stats = getMainCannonStats();
+
+    // 1. Reload Check
     const now = Date.now();
-    const dt = now - GameState.dragStartPos.time;
+    if (now - GameState.lastFireTime < stats.cooldown) {
+        spawnFloatingText(GameState.ship.x, GameState.ship.y - 50, "RELOADING...", "#9ca3af");
+        GameState.isDraggingAmmo = false;
+        return;
+    }
+
     const dx = GameState.dragCurrentPos.x - GameState.dragStartPos.x;
     const dy = GameState.dragCurrentPos.y - GameState.dragStartPos.y;
-    
-    // Physics Calculation (Fling logic)
-    const timeFactor = Math.max(dt, 40); 
-    const power = 40; 
-    let vx = (dx / timeFactor) * power; 
-    let vy = (dy / timeFactor) * power;
-    
-    const mag = Math.hypot(vx, vy);
-    
-    // Only fire if drag was significant enough
-    if (mag > 3) { 
-        const maxSpeed = 16;
-        // Cap speed
-        if (mag > maxSpeed) { 
-            const ratio = maxSpeed / mag; 
-            vx *= ratio; 
-            vy *= ratio; 
-        }
+    const dragDist = Math.hypot(dx, dy);
+
+    // 2. Directional Shot (Fixed Speed)
+    if (dragDist > 10) { 
+        const angle = Math.atan2(dy, dx);
         
-        // Create Projectile
-        GameState.projectiles.push(new Projectile(GameState.ship.x, GameState.ship.y, vx, vy));
+        // Constant velocity based on Stats
+        const vx = Math.cos(angle) * stats.speed; 
+        const vy = Math.sin(angle) * stats.speed;
+        
+        // isDirect = true (Flat trajectory)
+        const p = new Projectile(GameState.ship.x, GameState.ship.y, vx, vy, false, stats.damage, true);
+        
+        // Set fixed life based on range stat
+        p.life = stats.life; 
+        
+        if (stats.damage > 20) { p.size = 10; }
+        
+        GameState.projectiles.push(p);
         playBoom();
+        GameState.lastFireTime = now; 
     }
     
     GameState.isDraggingAmmo = false;
