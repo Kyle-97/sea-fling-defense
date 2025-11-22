@@ -6,6 +6,17 @@ import { getMainCannonStats } from '../entities/Ship.js'; // Use the new stats f
 export function drawGame(ctx, canvas) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // --- APPLY ZOOM ---
+    ctx.save();
+    if (CONFIG.zoom !== 1.0) {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        ctx.translate(cx, cy);
+        ctx.scale(CONFIG.zoom, CONFIG.zoom);
+        ctx.translate(-cx, -cy);
+    }
+    // ------------------
+
     if (GameState.inMenu) {
         drawSea(ctx, canvas);
         drawShip(ctx);
@@ -27,23 +38,33 @@ export function drawGame(ctx, canvas) {
     if (GameState.isDraggingAmmo && !GameState.inMenu && !GameState.inPort) {
         drawDragLine(ctx);
     }
+
+    ctx.restore(); // Restore zoom
 }
 
 let wavesOffset = 0;
 function drawSea(ctx, canvas) {
     wavesOffset = (wavesOffset + 1) % 40;
+    
+    // Draw logic adjusted for Zoom (Overdraw edges)
+    const renderW = canvas.width * (1 / CONFIG.zoom) + 200;
+    const renderH = canvas.height * (1 / CONFIG.zoom) + 200;
+    const startX = -100;
+    const startY = -100;
+
     ctx.fillStyle = CONFIG.seaColor; 
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(startX, startY, renderW, renderH);
     
     ctx.strokeStyle = CONFIG.waveColor; 
     ctx.lineWidth = 2; 
     ctx.beginPath();
-    for(let y = -40; y < canvas.height; y += 40) {
-        const drawY = y + wavesOffset;
-        for(let x = 0; x < canvas.width; x += 40) {
-            ctx.moveTo(x, drawY); 
-            ctx.quadraticCurveTo(x+10, drawY-5, x+20, drawY); 
-            ctx.quadraticCurveTo(x+30, drawY+5, x+40, drawY);
+    for(let y = -40; y < renderH; y += 40) {
+        const drawY = startY + y + wavesOffset;
+        for(let x = 0; x < renderW; x += 40) {
+            const drawX = startX + x;
+            ctx.moveTo(drawX, drawY); 
+            ctx.quadraticCurveTo(drawX+10, drawY-5, drawX+20, drawY); 
+            ctx.quadraticCurveTo(drawX+30, drawY+5, drawX+40, drawY);
         }
     }
     ctx.stroke();
@@ -51,7 +72,10 @@ function drawSea(ctx, canvas) {
 
 function drawPortScenery(ctx, canvas) {
     const ship = GameState.ship;
-    ctx.fillStyle = '#0ea5e9'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Fill background safely
+    ctx.fillStyle = '#0ea5e9'; 
+    ctx.fillRect(-1000, -1000, canvas.width + 2000, canvas.height + 2000);
     
     ctx.fillStyle = '#fde047'; 
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(canvas.width, 0); 

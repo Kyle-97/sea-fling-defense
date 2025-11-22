@@ -4,6 +4,7 @@ import { Projectile } from '../entities/Projectile.js';
 import { playBoom } from './Audio.js';
 import { spawnFloatingText } from './UI.js';
 import { getMainCannonStats } from '../entities/Ship.js';
+import { CONFIG } from '../constants.js'; // Import CONFIG for zoom
 
 export function initInput(canvas) {
     canvas.addEventListener('mousedown', startDrag);
@@ -23,28 +24,41 @@ export function initInput(canvas) {
     window.addEventListener('touchend', (e) => endDrag(e.changedTouches[0]));
 }
 
+// --- Coordinate Helper ---
+function getLogicPos(e) {
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const screenX = e.clientX || e.pageX;
+    const screenY = e.clientY || e.pageY;
+    
+    // Transform screen click to zoomed world coordinate
+    const x = (screenX - cx) / CONFIG.zoom + cx;
+    const y = (screenY - cy) / CONFIG.zoom + cy;
+    
+    return { x, y };
+}
+// -------------------------
+
 function startDrag(e) {
     if(GameState.isPaused || !GameState.gameActive || GameState.ship.sinking || GameState.inPort || GameState.inMenu) return;
     
-    const x = e.clientX || e.pageX;
-    const y = e.clientY || e.pageY;
+    const pos = getLogicPos(e);
     
-    const dist = Math.hypot(x - GameState.ship.x, y - GameState.ship.y);
+    const dist = Math.hypot(pos.x - GameState.ship.x, pos.y - GameState.ship.y);
     if (dist < 100) { 
         GameState.isDraggingAmmo = true;
         const guide = document.getElementById('touchGuide');
         if(guide) guide.style.display = 'none';
         
-        GameState.dragStartPos = { x: x, y: y, time: Date.now() }; 
-        GameState.dragCurrentPos = { x: x, y: y };
+        GameState.dragStartPos = { x: pos.x, y: pos.y, time: Date.now() }; 
+        GameState.dragCurrentPos = { x: pos.x, y: pos.y };
     }
 }
 
 function moveDrag(e) {
     if (!GameState.isDraggingAmmo) return;
-    const x = e.clientX || e.pageX; 
-    const y = e.clientY || e.pageY;
-    GameState.dragCurrentPos = { x: x, y: y };
+    const pos = getLogicPos(e);
+    GameState.dragCurrentPos = { x: pos.x, y: pos.y };
 }
 
 function endDrag(e) {

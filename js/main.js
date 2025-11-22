@@ -128,6 +128,16 @@ function setupEventListeners() {
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+
+    // --- ZOOM LOGIC ---
+    // If screen is small (mobile), zoom out to 0.75x to show more sea.
+    if (canvas.width < 600) {
+        CONFIG.zoom = 0.75;
+    } else {
+        CONFIG.zoom = 1.0;
+    }
+    // ------------------
+
     if(GameState.inMenu) {
         GameState.ship.x = canvas.width / 2;
         GameState.ship.y = canvas.height * 0.6;

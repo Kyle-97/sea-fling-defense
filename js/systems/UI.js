@@ -3,19 +3,27 @@ import { GameState } from '../state.js';
 import { updateShipStats } from '../entities/Ship.js';
 
 const SHOP_ITEMS = [
+    // --- NEW REPAIR ITEM ---
+    { id: 'repair', name: 'Repair', cost: 50, icon: '🔧', type: 'consumable', action: () => {
+        if (GameState.ship.hp < GameState.ship.maxHp) {
+            GameState.ship.hp = Math.min(GameState.ship.hp + 25, GameState.ship.maxHp);
+            updateHUD();
+            return true;
+        }
+        return false;
+    }},
+    // -----------------------
     { id: 'crew', name: 'Crew', cost: 150, icon: '🏴‍☠️', type: 'upgrade', action: () => {
         GameState.ship.crew++; return true;
     }},
     { id: 'bilge', name: 'Bilge Pump', cost: 300, icon: '🪣', type: 'upgrade', action: () => {
         GameState.ship.bilgeLevel++; return true;
     }},
-    // --- NEW ITEM ---
     { id: 'maingun', name: 'Main Gun', cost: 500, icon: '☄️', type: 'upgrade', action: () => {
         // Adds a slot. Max level 5.
         if(GameState.ship.mainCannonLevel < 5) { GameState.ship.mainCannonLevel++; return true; }
         return false;
     }},
-    // ----------------
     { id: 'cannon', name: 'Cannon', cost: 250, icon: '💣', type: 'upgrade', action: () => {
         const emptySlot = GameState.ship.slots.findIndex((s, i) => s.type === 'cannon' && !GameState.ship.cannons.some(c => c.slotIndex === i));
         if (emptySlot !== -1) { GameState.ship.cannons.push({ loaded: 0, slotIndex: emptySlot }); return true; }
@@ -79,6 +87,11 @@ export function initShop() {
         if(item.id === 'ship' && GameState.ship.tier >= 3) isDisabled = true;
         if(item.id === 'captain' && GameState.ship.hasCaptain) isDisabled = true;
         if(item.id === 'maingun' && GameState.ship.mainCannonLevel >= 5) isDisabled = true;
+        
+        // --- DISABLE REPAIR IF FULL HP ---
+        if(item.id === 'repair' && GameState.ship.hp >= GameState.ship.maxHp) isDisabled = true;
+        // ---------------------------------
+
         if(item.id === 'cannon' || item.id === 'swivel') {
             const hasSlot = GameState.ship.slots.some((s, i) => s.type === item.id && !GameState.ship.cannons.some(c => c.slotIndex === i));
             if(!hasSlot) isDisabled = true;

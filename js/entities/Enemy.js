@@ -19,8 +19,8 @@ export class Enemy {
         this.dead = false;
         this.maxHp = 20;
         
-        // CHANGED: Increased basic enemy speed from 0.2 to 0.35
-        this.speed = 0.35; 
+        // CHANGED: Reduced basic speed slightly for better mobile pacing (was 0.35)
+        this.speed = 0.3; 
         
         this.size = 20;
         this.angle = 0;
@@ -30,6 +30,13 @@ export class Enemy {
 
         this.initStats(wave, canvasWidth);
         this.hp = this.maxHp;
+
+        // --- DYNAMIC DIFFICULTY ADJUSTMENT ---
+        // If screen is small (mobile), enemies move 30% slower
+        if (canvasWidth < 600) {
+            this.speed *= 0.7;
+        }
+        // -------------------------------------
     }
 
     initStats(wave, canvasWidth) {
@@ -95,9 +102,11 @@ export class Enemy {
     }
 
     moveBehavior(dx, dy, dist, canvasWidth, ship) {
+        // CHANGED: Drastically reduced the boundary push force (0.5 -> 0.1)
+        // This prevents enemies from "launching" into the screen at high speed.
         if(this.type !== 'boss') {
-            if (this.x < 20) this.x += 0.5;
-            if (this.x > canvasWidth - 20) this.x -= 0.5;
+            if (this.x < 20) this.x += 0.1;
+            if (this.x > canvasWidth - 20) this.x -= 0.1;
         }
         
         if (this.type === 'serpent') {
@@ -124,7 +133,8 @@ export class Enemy {
              this.x += Math.cos(this.angle) * this.speed;
              this.y += Math.sin(this.angle) * this.speed;
         }
-        this.y += 0.1; 
+        // CHANGED: Reduced global downward drift (0.1 -> 0.05) to give more time
+        this.y += 0.05; 
     }
 
     shootBehavior(dist, ship) {

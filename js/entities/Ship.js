@@ -10,7 +10,8 @@ export function getMainCannonStats() {
     const crew = GameState.ship.mainCannonCrew;
     
     // Base Stats (Level 0)
-    let cooldown = 2500; 
+    // CHANGED: Buffed base reload speed (2500 -> 2000) to help early game
+    let cooldown = 2000; 
     // NERFED: Reduced base damage from 15 to 10
     let damage = 10; 
     let speed = 6; 
