@@ -16,7 +16,7 @@ export class Enemy {
         else { this.x = canvasWidth + margin; this.y = (Math.random() * canvasHeight * 0.6); }
 
         this.type = type;
-        this.wave = wave; // Store wave for difficulty scaling logic
+        this.wave = wave; 
         this.dead = false;
         this.maxHp = 20;
         
@@ -41,8 +41,9 @@ export class Enemy {
     }
 
     initStats(wave, canvasWidth) {
-        // STEPWISE SCALING
-        const waveScaling = Math.floor(wave / 5) * 15; 
+        // STEPWISE SCALING - REDUCED
+        // Was 15, now 10 to account for increasing enemy counts.
+        const waveScaling = Math.floor(wave / 5) * 10; 
 
         if (this.type === 'gunboat') { 
             this.maxHp = 30 + waveScaling; 
@@ -57,9 +58,8 @@ export class Enemy {
             this.size = 25; 
         }
         else if (this.type === 'boss') {
-            // Reduced Base Health: Was 150 + (wave*35)
-            // Now slightly easier early on
-            this.maxHp = 100 + (wave * 30); 
+            // Reduced boss scaling (Was wave * 30)
+            this.maxHp = 100 + (wave * 25); 
             this.speed = 0.15; 
             this.color = '#7f1d1d'; 
             this.size = 50;
@@ -204,20 +204,16 @@ export class Enemy {
                  fireRate = 150;      // Wave 10: 2.5s (Medium)
                  offsets = [-15, 15]; // Wave 10: 2 Cannons
              }
-             // Wave 15+ uses defaults (Fast & 3 Cannons)
 
              const shootDist = 800;
              
              if (this.reload <= 0 && dist < shootDist) {
                  this.reload = fireRate;
                  
-                 // Inaccuracy
                  const accuracyError = (Math.random() - 0.5) * 0.5;
                  const aimAngle = Math.atan2(ship.y - this.y, ship.x - this.x) + accuracyError;
 
                  const shipFacing = this.currentRotation;
-                 
-                 // Aim Calculation
                  const g = 0.1;
                  const zVel = 4.0; 
                  const flightTime = (2 * zVel) / g; 
