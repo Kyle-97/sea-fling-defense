@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sea Fling: Captain's Defense</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1e3a8a;
+            font-family: 'Roboto', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .ui-layer {
+            position: absolute;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            text-shadow: 2px 2px 0 #000;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));
+            height: 90px;
+            pointer-events: none;
+        }
+
+        .controls-top {
+            pointer-events: auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: rgba(0,0,0,0.5);
+            border: 2px solid white;
+            color: white;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .icon-btn:active { transform: scale(0.9); }
+
+        /* PORT UI */
+        .port-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background: rgba(20, 10, 5, 0.98);
+            border-top: 4px solid #a16207;
+            display: none;
+            flex-direction: column;
+            pointer-events: auto;
+            z-index: 40;
+            padding: 10px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
+        }
+
+        .port-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #fcd34d;
+            font-family: 'Press Start 2P', cursive;
+            margin-bottom: 10px;
+            padding: 0 5px;
+        }
+
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+            gap: 8px;
+            overflow-y: auto;
+            padding: 2px;
+            flex-grow: 1;
+        }
+
+        .shop-btn {
+            background: #fcd34d;
+            border: 2px solid #78350f;
+            border-radius: 4px;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            min-height: 80px;
+            transition: transform 0.1s;
+            color: #451a03;
+            font-weight: bold;
+            font-size: 9px;
+            position: relative;
+            text-align: center;
+        }
+
+        .shop-btn:active { transform: scale(0.95); }
+        .shop-btn.disabled { filter: grayscale(100%); opacity: 0.5; pointer-events: none; }
+
+        .shop-icon { font-size: 20px; margin-bottom: 2px; }
+        .price { color: #991b1b; font-weight: 800; margin-top: 2px; }
+        
+        .owned-count { 
+            position: absolute; top: -5px; right: -5px; 
+            background: #ef4444; color: white; border-radius: 50%; 
+            width: 18px; height: 18px; display: flex; 
+            align-items: center; justify-content: center; font-size: 9px;
+            border: 1px solid white;
+            z-index: 2;
+        }
+
+        .sail-btn {
+            background: #15803d;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            padding: 15px;
+            text-align: center;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+            border: 2px solid #4ade80;
+            font-size: 14px;
+            text-shadow: 1px 1px 0 #000;
+        }
+        .sail-btn:active { transform: translateY(2px); }
+
+        .overlay-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 50;
+            pointer-events: auto;
+            text-align: center;
+        }
+
+        .floating-text {
+            position: absolute;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            text-shadow: 1px 1px 0 #000;
+            font-family: 'Press Start 2P';
+            font-size: 12px;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-40px) scale(1.2); opacity: 0; }
+        }
+        
+        @keyframes pulse-ring {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+        .touch-guide {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.5);
+            pointer-events: none;
+            animation: pulse-ring 1.5s infinite;
+            display: none;
+            left: 50%;
+            top: 60%;
+            transform: translate(-50%, -50%);
+        }
+
+        #portNotif {
+            position: absolute;
+            top: 30%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Press Start 2P';
+            color: #fcd34d;
+            text-shadow: 3px 3px 0 #000;
+            font-size: 28px;
+            text-align: center;
+            display: none;
+            pointer-events: none;
+            width: 100%;
+            z-index: 60;
+        }
+        
+        /* Start Menu Button Styles */
+        .menu-btn {
+            width: 100%;
+            padding: 15px;
+            margin: 5px 0;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            color: white;
+            border: 2px solid white;
+            border-radius: 8px;
+            cursor: pointer;
+            text-shadow: 1px 1px 0 #000;
+            transition: transform 0.1s;
+        }
+        .menu-btn:active { transform: scale(0.98); }
+        .btn-lvl1 { background-color: #2563eb; border-color: #60a5fa; }
+        .btn-lvl2 { background-color: #059669; border-color: #34d399; }
+        .btn-lvl3 { background-color: #d97706; border-color: #fbbf24; }
+        .btn-lvl4 { background-color: #dc2626; border-color: #f87171; }
+        .btn-lvl5 { background-color: #7f1d1d; border-color: #991b1b; }
+
+    </style>
+</head>
+<body>
+
+    <div class="ui-layer">
+        <div class="hud" id="hud" style="display: none;">
+            <div>
+                <div class="text-yellow-400 mb-1">GOLD: <span id="goldDisplay">0</span></div>
+                <div class="text-red-400 mb-1">HULL: <span id="hpDisplay">100</span>%</div>
+                <div class="text-white text-xs">CREW: <span id="crewDisplay">0</span> <span class="text-gray-400">(Idle:<span id="idleCrew">0</span>)</span></div>
+            </div>
+            <div class="controls-top">
+                <button class="icon-btn" id="musicBtn" onclick="toggleMusic()">🎵</button>
+                <button class="icon-btn" onclick="togglePause()">⏸️</button>
+            </div>
+            <div class="text-right">
+                <div class="text-blue-300 mb-2">WAVE: <span id="waveDisplay">1</span></div>
+                <div class="text-gray-300 text-xs">ENEMIES: <span id="enemyCount">0</span></div>
+            </div>
+        </div>
+
+        <!-- Port UI -->
+        <div class="port-overlay" id="portUI">
+            <div class="port-header">
+                <span>PORT</span>
+                <div class="text-right">
+                    <div class="text-xs text-yellow-400">GOLD: <span id="portGold">0</span></div>
+                </div>
+            </div>
+            <div class="shop-grid" id="shopGrid"></div>
+            <div class="sail-btn" onclick="leavePort()">SET SAIL!</div>
+        </div>
+    </div>
+    
+    <div id="touchGuide" class="touch-guide"></div>
+    <div id="portNotif">WAVE START!</div>
+
+    <!-- Start Menu -->
+    <div id="startMenu" class="overlay-screen" style="display: flex; background: rgba(0,0,0,0.7);">
+        <h1 class="text-4xl md:text-5xl font-bold text-yellow-400 mb-2" style="font-family: 'Press Start 2P'; text-shadow: 3px 3px 0 #000;">SEA FLING</h1>
+        <p class="text-white mb-8 font-bold text-sm tracking-widest">CAPTAIN'S DEFENSE</p>
+        
+        <div class="flex flex-col w-64 gap-2">
+            <button onclick="startGame(1)" class="menu-btn btn-lvl1">WAVE 1<br><span class="text-[10px] opacity-80">New Game</span></button>
+            <button onclick="startGame(10)" class="menu-btn btn-lvl2">WAVE 10<br><span class="text-[10px] opacity-80">+3,000 Gold</span></button>
+            <button onclick="startGame(20)" class="menu-btn btn-lvl3">WAVE 20<br><span class="text-[10px] opacity-80">+8,000 Gold</span></button>
+            <button onclick="startGame(30)" class="menu-btn btn-lvl4">WAVE 30<br><span class="text-[10px] opacity-80">+15,000 Gold</span></button>
+            <button onclick="startGame(40)" class="menu-btn btn-lvl5">WAVE 40<br><span class="text-[10px] opacity-80">+25,000 Gold</span></button>
+        </div>
+    </div>
+
+    <div id="pauseScreen" class="overlay-screen">
+        <h1 class="text-3xl font-bold text-yellow-500 mb-8" style="font-family: 'Press Start 2P'">ANCHORED</h1>
+        <button onclick="togglePause()" class="px-8 py-4 bg-blue-600 border-2 border-white hover:bg-blue-500 text-white font-bold rounded">HOIST SAILS</button>
+    </div>
+
+    <div id="gameOverScreen" class="overlay-screen">
+        <h1 class="text-4xl font-bold text-red-500 mb-4" style="font-family: 'Press Start 2P'">SUNK!</h1>
+        <p class="text-xl mb-8">The depths claim another.</p>
+        <p class="mb-8 text-yellow-400">Waves Survived: <span id="finalWave">0</span></p>
+        <button onclick="resetGame()" class="px-8 py-4 bg-green-600 border-2 border-white text-white font-bold rounded">SET SAIL AGAIN</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+// --- Configuration ---
+const CONFIG = {
+    seaColor: '#1e3a8a',
+    waveColor: '#60a5fa',
+    shipColor: '#573a25',
+    deckColor: '#784c2f',
+    friction: 0.98,
+    enemySpawnRate: 300, 
+    zoom: 1.0
+};
+
+// --- Game State ---
+let canvas, ctx;
+let gameActive = false; // Start inactive for menu
+let isPaused = false;
+let inPort = false;
+let inMenu = true; // New State
+let frameCount = 0;
+let enemiesKilled = 0;
+
+// Ship & Crew Logic
+let ship = {
+    x: 0, y: 0, 
+    w: 60, h: 140, 
+    rotation: 0, 
+    hp: 100, maxHp: 100,
+    tier: 1,
+    slots: [], 
+    cannons: [], 
+    crew: 0,
+    bilgeLevel: 0, 
+    bilgeCrew: 0, 
+    hasCaptain: false,
+    sinking: false,
+    sinkProgress: 0,
+    sinkAngle: 0
+};
+
+let projectiles = [];
+let enemies = [];
+let particles = [];
+let splashes = []; 
+let enemyProjectiles = [];
+let wavesOffset = 0; 
+
+let gold = 0;
+let wave = 1;
+let enemiesToSpawn = 5;
+let spawnTimer = 0;
+
+// Input
+let pointer = { x: 0, y: 0, isDown: false };
+let isDraggingAmmo = false;
+let dragStartPos = { x: 0, y: 0, time: 0 };
+let dragCurrentPos = { x: 0, y: 0, time: 0 };
+
+// --- Shop Data ---
+const SHOP_ITEMS = [
+    { id: 'crew', name: 'Crew', cost: 150, icon: '🏴‍☠️', type: 'upgrade', action: () => {
+        ship.crew++; return true;
+    }},
+    { id: 'bilge', name: 'Bilge Pump', cost: 300, icon: '🪣', type: 'upgrade', action: () => {
+        ship.bilgeLevel++; return true;
+    }},
+    { id: 'cannon', name: 'Cannon', cost: 250, icon: '💣', type: 'upgrade', action: () => {
+        const emptySlot = ship.slots.findIndex((s, i) => s.type === 'cannon' && !ship.cannons.some(c => c.slotIndex === i));
+        if (emptySlot !== -1) { ship.cannons.push({ loaded: 0, slotIndex: emptySlot }); return true; }
+        return false;
+    }},
+    { id: 'swivel', name: 'Swivel Gun', cost: 400, icon: '🔭', type: 'upgrade', action: () => {
+        const emptySlot = ship.slots.findIndex((s, i) => s.type === 'swivel' && !ship.cannons.some(c => c.slotIndex === i));
+        if (emptySlot !== -1) { ship.cannons.push({ loaded: 0, slotIndex: emptySlot }); return true; }
+        return false;
+    }},
+    { id: 'captain', name: 'Captain', cost: 800, icon: '🧑‍✈️', type: 'unique', action: () => {
+        if(!ship.hasCaptain) { ship.hasCaptain = true; return true; }
+        return false;
+    }},
+    { id: 'ship', name: 'Upgr. Ship', cost: 1200, icon: '🚢', type: 'upgrade', action: () => {
+        if(ship.tier < 3) { ship.tier++; updateShipStats(); return true; }
+        return false;
+    }}
+];
+
+// --- Audio System (Safe) ---
+let audioCtx = null;
+let musicPlaying = false;
+
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+}
+
+function safeAudioCall(callback) {
+    if(!audioCtx) return;
+    try { callback(); } catch(e) {}
+}
+
+function playBoom(isSmall = false) {
+    safeAudioCall(() => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(isSmall ? 120 : 60, audioCtx.currentTime); 
+        osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.6);
+        gain.gain.setValueAtTime(isSmall ? 0.2 : 0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+    });
+}
+
+function playSplash() {
+    safeAudioCall(() => {
+        const bufferSize = audioCtx.sampleRate * 0.5;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+        const noise = audioCtx.createBufferSource(); noise.buffer = buffer;
+        const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.4);
+        const gain = audioCtx.createGain(); gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+        noise.start();
+    });
+}
+
+function playCrunch() {
+    safeAudioCall(() => {
+        const bufferSize = audioCtx.sampleRate * 0.2;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i/bufferSize);
+        const noise = audioCtx.createBufferSource(); noise.buffer = buffer;
+        const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass';
+        filter.frequency.value = 1000;
+        const gain = audioCtx.createGain(); gain.gain.value = 0.5;
+        noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+        noise.start();
+    });
+}
+
+const SHANTY_NOTES = [293.66, 349.23, 440.00, 440.00, 392.00, 349.23, 329.63, 293.66, 293.66, 349.23, 440.00, 587.33, 523.25, 493.88, 440.00, 392.00];
+let noteIdx = 0;
+let musicTimer = null;
+
+function musicLoop() {
+    if(!musicPlaying) return;
+    safeAudioCall(() => {
+        const freq = SHANTY_NOTES[noteIdx % SHANTY_NOTES.length];
+        const duration = (noteIdx % 4 === 3) ? 0.8 : 0.4;
+        const osc1 = audioCtx.createOscillator(); const osc2 = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc1.type = 'sawtooth'; osc2.type = 'square'; osc1.frequency.value = freq; osc2.frequency.value = freq * 2; osc2.detune.value = 10;
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 0.1);
+        gain.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + duration - 0.1);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration);
+        osc1.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
+        osc1.start(); osc2.start(); osc1.stop(audioCtx.currentTime + duration); osc2.stop(audioCtx.currentTime + duration);
+        noteIdx++;
+        musicTimer = setTimeout(musicLoop, duration * 1000);
+    });
+}
+
+function toggleMusic() {
+    initAudio();
+    musicPlaying = !musicPlaying;
+    document.getElementById('musicBtn').style.opacity = musicPlaying ? '1' : '0.5';
+    if(musicPlaying) musicLoop(); else clearTimeout(musicTimer);
+}
+
+// --- Game Entities ---
+
+class Projectile {
+    constructor(x, y, vx, vy, isEnemy = false, damage = 10) {
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+        this.isEnemy = isEnemy; this.active = true; this.life = 180; 
+        this.size = isEnemy ? 4 : 8; this.height = 10; this.zVel = isEnemy ? 2 : 4; 
+        this.gravity = isEnemy ? 0.1 : 0.15; 
+        this.damage = damage;
+        this.trail = [];
+    }
+
+    update() {
+        if (frameCount % 3 === 0 && !this.isEnemy && this.height > 0) this.trail.push({x: this.x, y: this.y, h: this.height, age: 1.0});
+        this.x += this.vx; this.y += this.vy;
+        if (this.height > -5) { this.height += this.zVel; this.zVel -= this.gravity; }
+        if (this.height <= 0) {
+            if (this.active && this.zVel < 0 && this.height > -3) {
+                if (!this.isEnemy) { splashes.push(new Splash(this.x, this.y)); playSplash(); }
+                else particles.push(new Particle(this.x, this.y, '#fff', 1));
+            }
+            this.height = -1; this.vx *= 0.8; this.vy *= 0.8; this.life -= 15; 
+        }
+        if (this.life <= 0) this.active = false;
+
+        const hitHeightThreshold = this.isEnemy ? 30 : 100; 
+        if (this.active && this.height < hitHeightThreshold && this.height > -5) { 
+            if (this.isEnemy) {
+                if (ship.sinking) return;
+                const hitW = ship.w * 1.2; const hitH = ship.h * 1.2;
+                if (this.x > ship.x - hitW/2 && this.x < ship.x + hitW/2 &&
+                    this.y > ship.y - hitH/2 && this.y < ship.y + hitH/2) {
+                    takeDamage(5); this.active = false;
+                }
+            } else {
+                for (let e of enemies) {
+                    if (!e.dead && Math.hypot(e.x - this.x, e.y - this.y) < e.size + this.size + 30) {
+                        e.takeDamage(this.damage);
+                        for(let i=0; i<10; i++) particles.push(new Particle(this.x, this.y, '#f59e0b', 2 + Math.random())); 
+                        playCrunch(); this.active = false; break;
+                    }
+                }
+            }
+        }
+    }
+
+    draw() {
+        if (this.trail.length > 0) {
+            for (let i = 0; i < this.trail.length; i++) {
+                let t = this.trail[i]; t.age -= 0.05;
+                if(t.age > 0) {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${t.age * 0.3})`;
+                    ctx.beginPath(); ctx.arc(t.x, t.y - t.h, 2, 0, Math.PI*2); ctx.fill();
+                }
+            }
+        }
+        ctx.save(); ctx.translate(this.x, this.y);
+        if (this.height > 0) {
+            const shadowScale = 1 - (this.height / 150);
+            if(shadowScale > 0) {
+                ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 0, this.size * shadowScale, this.size * 0.5 * shadowScale, 0, 0, Math.PI*2); ctx.fill();
+            }
+        }
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, -this.height, this.size, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#666'; ctx.beginPath(); ctx.arc(-2, -this.height - 2, 2, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
+}
+
+class Splash {
+    constructor(x, y) { this.x = x; this.y = y; this.life = 1.0; this.radius = 0; }
+    update() { this.life -= 0.03; this.radius += 1.5; }
+    draw() {
+        ctx.save(); ctx.translate(this.x, this.y); ctx.scale(1, 0.5); 
+        ctx.strokeStyle = `rgba(255, 255, 255, ${this.life})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.stroke();
+        if (this.radius > 10) { ctx.beginPath(); ctx.arc(0, 0, this.radius - 10, 0, Math.PI*2); ctx.stroke(); }
+        ctx.restore();
+    }
+}
+
+class Enemy {
+    constructor(type) {
+        const side = Math.floor(Math.random() * 3);
+        const margin = 50;
+        if (side === 0) { this.x = (Math.random() * canvas.width); this.y = -margin; } 
+        else if (side === 1) { this.x = -margin; this.y = (Math.random() * canvas.height * 0.6); } 
+        else { this.x = canvas.width + margin; this.y = (Math.random() * canvas.height * 0.6); }
+
+        this.type = type;
+        this.dead = false;
+        this.maxHp = 20;
+        this.speed = 0.2; 
+        this.size = 20;
+        this.angle = 0;
+        this.reload = 0;
+        this.sway = Math.random() * 100;
+
+        if (type === 'gunboat') { this.maxHp = 30; this.speed = 0.4; this.color = '#374151'; } 
+        else if (type === 'serpent') { this.maxHp = 60; this.speed = 0.4; this.color = '#047857'; this.size = 25; }
+        else if (type === 'boss') {
+            this.maxHp = 300 + (wave * 50); 
+            this.speed = 0.1; 
+            this.color = '#7f1d1d'; // Dark red
+            this.size = 50;
+            this.x = canvas.width / 2; this.y = -80; // Boss always spawns top center
+        }
+        else { this.maxHp = 15; this.speed = 0.5; this.color = '#92400e'; }
+        this.hp = this.maxHp;
+    }
+
+    update() {
+        if (this.dead || ship.sinking) return;
+        const dx = ship.x - this.x;
+        const dy = ship.y - this.y;
+        const dist = Math.hypot(dx, dy);
+        
+        // Keep normal enemies in bounds
+        if(this.type !== 'boss') {
+            if (this.x < 20) this.x += 0.5;
+            if (this.x > canvas.width - 20) this.x -= 0.5;
+        }
+
+        if (this.type === 'serpent') {
+            this.sway += 0.05;
+            const baseAngle = Math.atan2(dy, dx);
+            this.angle = baseAngle + (Math.sin(this.sway) * 0.5);
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed;
+        } else if (this.type === 'gunboat') {
+            // ORBIT BEHAVIOR
+            if (dist > 450) {
+                this.angle = Math.atan2(dy, dx); // Move closer
+            } else if (dist < 250) {
+                this.angle = Math.atan2(dy, dx) + Math.PI; // Move away
+            } else {
+                // Orbit Faster (increased speed modifier in move)
+                this.angle = Math.atan2(dy, dx) + (Math.PI / 2) + 0.1; 
+            }
+            // Move faster when orbiting
+            const orbitSpeed = (dist <= 450 && dist >= 250) ? this.speed * 1.5 : this.speed;
+            this.x += Math.cos(this.angle) * orbitSpeed;
+            this.y += Math.sin(this.angle) * orbitSpeed;
+        } else if (this.type === 'boss') {
+            // FIGURE-8 MOVEMENT - Widened and Relative to Ship
+            this.sway += 0.015; // Faster sway
+            
+            // Horizontal Sine Wave (Wider sweep)
+            this.x += Math.sin(this.sway) * 1.5; 
+            
+            // Target Y is relative to SHIP, not screen top
+            // This keeps boss in cannon range (approx 350px away)
+            let targetY = (ship.y - 350) + (Math.cos(this.sway * 2) * 80);
+            
+            // Smoothly move Y towards targetY
+            this.y += (targetY - this.y) * 0.02;
+            
+            // Face the player
+            this.angle = Math.atan2(dy, dx);
+        } else {
+            this.angle = Math.atan2(dy, dx);
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed;
+        }
+
+        this.y += 0.1; 
+
+        if (dist < this.size + 40) { 
+            takeDamage(10); 
+            if(this.type !== 'boss') { this.dead = true; } 
+            spawnParticles(this.x, this.y, 15, '#fff'); return;
+        }
+
+        // Shooting
+        if (this.type === 'gunboat' || this.type === 'boss') {
+            this.reload--;
+            
+            const shootDist = (this.type === 'boss') ? 700 : 500; // Boss shoots from further
+            const fireRate = (this.type === 'boss') ? 200 : 300;
+            
+            if (this.reload <= 0 && dist < shootDist) { 
+                this.reload = fireRate; 
+                const shotSpeed = 3.0; 
+                const shotAngle = Math.atan2(ship.y - this.y, ship.x - this.x);
+                
+                if(this.type === 'boss') {
+                    enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle)*shotSpeed, Math.sin(shotAngle)*shotSpeed, true));
+                    enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle - 0.3)*shotSpeed, Math.sin(shotAngle - 0.3)*shotSpeed, true));
+                    enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle + 0.3)*shotSpeed, Math.sin(shotAngle + 0.3)*shotSpeed, true));
+                    playBoom(true);
+                } else {
+                    enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle)*shotSpeed, Math.sin(shotAngle)*shotSpeed, true));
+                    playBoom(true);
+                }
+            }
+        }
+        if (this.y > canvas.height + 50) this.dead = true;
+    }
+
+    takeDamage(amt) {
+        this.hp -= amt;
+        if (this.hp <= 0) {
+            this.dead = true; enemiesKilled++;
+            let val = 10;
+            if(this.type === 'gunboat') val = 25;
+            if(this.type === 'serpent') val = 40;
+            if(this.type === 'boss') val = 500; // Big reward
+            
+            addGold(val);
+            spawnParticles(this.x, this.y, 10, this.color);
+            
+            if(this.type === 'boss') {
+                spawnFloatingText(this.x, this.y, "BOSS DEFEATED!", "#ffff00");
+            }
+        }
+    }
+
+    draw() {
+        if (this.dead) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        const faceAngle = Math.atan2(ship.y - this.y, ship.x - this.x);
+        ctx.rotate(faceAngle);
+
+        if (this.type === 'serpent') {
+            ctx.fillStyle = this.color; ctx.beginPath(); ctx.ellipse(0, 0, 30, 10, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(15, 0, 10, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(18, -3, 2, 0, Math.PI*2); ctx.arc(18, 3, 2, 0, Math.PI*2); ctx.fill();
+        } else if(this.type === 'boss') {
+            // Boss Draw
+            ctx.fillStyle = '#450a0a';
+            ctx.beginPath(); ctx.moveTo(30, 0); ctx.lineTo(-30, -15); ctx.lineTo(-30, 15); ctx.fill(); // Hull
+            ctx.fillStyle = '#7f1d1d'; ctx.fillRect(-10, -10, 20, 20); // Deck
+            ctx.fillStyle = '#fff'; // Skull ish shape
+            ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+        } else {
+            ctx.fillStyle = this.color; ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(-15, -10); ctx.lineTo(-15, 10); ctx.fill();
+            if (this.type === 'gunboat') { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill(); } 
+            else { ctx.fillStyle = '#eee'; ctx.fillRect(-5, -5, 10, 10); }
+        }
+        ctx.rotate(-faceAngle);
+        ctx.fillStyle = 'red'; ctx.fillRect(-15, -30, 30, 4);
+        ctx.fillStyle = '#0f0'; ctx.fillRect(-15, -30, 30 * (this.hp / this.maxHp), 4);
+        ctx.restore();
+    }
+}
+
+class Particle {
+    constructor(x, y, color, speed = 2) {
+        this.x = x; this.y = y; this.vx = (Math.random() - 0.5) * speed; this.vy = (Math.random() - 0.5) * speed; this.life = 1.0; this.color = color; this.size = Math.random() * 2 + 1;
+    }
+    update() { this.x += this.vx; this.y += this.vy; this.life -= 0.05; }
+    draw() { ctx.globalAlpha = this.life; ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1.0; }
+}
+
+// --- LOGIC ---
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ship.x = canvas.width / 2;
+    ship.y = canvas.height * 0.6; 
+    const guide = document.getElementById('touchGuide');
+    guide.style.left = '50%'; guide.style.top = '60%';
+}
+
+function updateShipStats() {
+    ship.slots = [];
+    if (ship.tier >= 1) {
+        ship.w = 60; ship.h = 140;
+        ship.slots.push({ x: -25, y: -10, angle: Math.PI, arc: Math.PI/1.5, type: 'cannon' });
+        ship.slots.push({ x: 25, y: -10, angle: 0, arc: Math.PI/1.5, type: 'cannon' });
+        ship.slots.push({ x: 0, y: -50, angle: -Math.PI/2, arc: Math.PI*2, type: 'swivel' });
+    }
+    if (ship.tier >= 2) {
+        ship.w = 70; ship.h = 160;
+        ship.slots[0].y = -30; ship.slots[1].y = -30;
+        ship.slots.push({ x: -25, y: 20, angle: Math.PI, arc: Math.PI/1.5, type: 'cannon' });
+        ship.slots.push({ x: 25, y: 20, angle: 0, arc: Math.PI/1.5, type: 'cannon' });
+        ship.slots.push({ x: 0, y: 50, angle: Math.PI/2, arc: Math.PI*2, type: 'swivel' });
+    }
+    if (ship.tier >= 3) {
+        ship.w = 80; ship.h = 200;
+        ship.slots[0].y = -60; ship.slots[1].y = -60;
+        ship.slots[2].type='cannon'; ship.slots[2].y = -10;
+        ship.slots[3].type='cannon'; ship.slots[3].y = -10;
+        ship.slots.push({ x: -30, y: 40, angle: Math.PI, arc: Math.PI/1.5, type: 'cannon' });
+        ship.slots.push({ x: 30, y: 40, angle: 0, arc: Math.PI/1.5, type: 'cannon' });
+        ship.slots[4].y = 70;
+    }
+}
+
+// --- Touch/Flick ---
+function startDrag(e) {
+    if(isPaused || !gameActive || ship.sinking || inPort || inMenu) return;
+    const x = e.clientX || e.pageX;
+    const y = e.clientY || e.pageY;
+    const dist = Math.hypot(x - ship.x, y - ship.y);
+    if (dist < 100) { 
+        isDraggingAmmo = true; pointer.x = x; pointer.y = y;
+        dragStartPos = { x: x, y: y, time: Date.now() }; dragCurrentPos = { x: x, y: y };
+        document.getElementById('touchGuide').style.display = 'none';
+    }
+}
+function moveDrag(e) {
+    if (!isDraggingAmmo) return;
+    const x = e.clientX || e.pageX; const y = e.clientY || e.pageY;
+    pointer.x = x; pointer.y = y; dragCurrentPos = { x: x, y: y };
+}
+function endDrag(e) {
+    if (!isDraggingAmmo) return;
+    const now = Date.now();
+    const dt = now - dragStartPos.time;
+    const dx = dragCurrentPos.x - dragStartPos.x;
+    const dy = dragCurrentPos.y - dragStartPos.y;
+    const timeFactor = Math.max(dt, 40); 
+    const power = 40; 
+    let vx = (dx / timeFactor) * power; let vy = (dy / timeFactor) * power;
+    const mag = Math.hypot(vx, vy);
+    if (mag > 3) { 
+        const maxSpeed = 16;
+        if (mag > maxSpeed) { const ratio = maxSpeed / mag; vx *= ratio; vy *= ratio; }
+        projectiles.push(new Projectile(ship.x, ship.y, vx, vy));
+        playBoom();
+    }
+    isDraggingAmmo = false;
+}
+
+// --- CAPTAIN AI ---
+function updateCaptain() {
+    if(!ship.hasCaptain || ship.sinking) return;
+    
+    let targetX = 0;
+    let targetY = 0;
+    
+    // 1. Boss Priority
+    const boss = enemies.find(e => e.type === 'boss' && !e.dead);
+    
+    if (boss) {
+        targetX = boss.x;
+        targetY = boss.y;
+    } else {
+        // 2. Crowd Logic
+        let sumX = 0, sumY = 0, count = 0;
+        enemies.forEach(e => { if(!e.dead) { sumX += e.x; sumY += e.y; count++; } });
+        
+        if(count > 0) {
+            targetX = sumX / count;
+            targetY = sumY / count;
+        } else {
+            // No enemies, reset to 0
+            let diff = 0 - ship.rotation;
+            while (diff <= -Math.PI) diff += Math.PI*2;
+            while (diff > Math.PI) diff -= Math.PI*2;
+            ship.rotation += diff * 0.01;
+            return;
+        }
+    }
+    
+    const angleToTarget = Math.atan2(targetY - ship.y, targetX - ship.x);
+    
+    // We want broadside (Cannons are at 0 and PI)
+    // If target is at angle A, we want ShipRotation + 0 = A  OR  ShipRotation + PI = A
+    // So ShipRotation = A  or  A - PI.
+    // We pick the one closest to current rotation.
+    
+    // Option 1: Face Right Side to Enemy
+    let ideal1 = angleToTarget;
+    // Option 2: Face Left Side to Enemy
+    let ideal2 = angleToTarget + Math.PI;
+    
+    // Normalize current rotation
+    let current = ship.rotation;
+    
+    // Find diffs
+    let diff1 = ideal1 - current;
+    while (diff1 <= -Math.PI) diff1 += Math.PI*2;
+    while (diff1 > Math.PI) diff1 -= Math.PI*2;
+    
+    let diff2 = ideal2 - current;
+    while (diff2 <= -Math.PI) diff2 += Math.PI*2;
+    while (diff2 > Math.PI) diff2 -= Math.PI*2;
+    
+    // Pick smaller turn
+    let finalDiff = (Math.abs(diff1) < Math.abs(diff2)) ? diff1 : diff2;
+    
+    // Turn speed (Faster than before: 0.01)
+    ship.rotation += finalDiff * 0.015; 
+}
+
+// --- CREW & LOGISTICS AI ---
+function updateCrewLogistics() {
+    if(ship.sinking) return;
+
+    let availableCrew = ship.crew;
+    let crewAssignments = new Array(ship.cannons.length).fill(0);
+    let bilgeAssigned = 0;
+
+    if (ship.bilgeLevel > 0 && ship.hp < ship.maxHp && availableCrew > 0) {
+        const hpDeficitPct = 1 - (ship.hp / ship.maxHp);
+        let neededForBilge = Math.ceil(availableCrew * hpDeficitPct * 1.5); 
+        if (ship.hp < 30) neededForBilge = availableCrew;
+        const capacity = ship.bilgeLevel * 3;
+        bilgeAssigned = Math.min(neededForBilge, availableCrew, capacity);
+        availableCrew -= bilgeAssigned;
+        
+        if (frameCount % 60 === 0 && bilgeAssigned > 0) {
+            const repairAmt = 0.5 * bilgeAssigned * ship.bilgeLevel;
+            ship.hp = Math.min(ship.hp + repairAmt, ship.maxHp);
+            updateHUD(); 
+        }
+    }
+    ship.bilgeCrew = bilgeAssigned;
+
+    if (availableCrew > 0 && ship.cannons.length > 0) {
+        let priorityCannons = [];
+        
+        ship.cannons.forEach((cannon, index) => {
+            if(!ship.slots[cannon.slotIndex]) return;
+            const slot = ship.slots[cannon.slotIndex];
+            const cos = Math.cos(ship.rotation); const sin = Math.sin(ship.rotation);
+            const rx = slot.x * cos - slot.y * sin; const ry = slot.x * sin + slot.y * cos;
+            const cx = ship.x + rx; const cy = ship.y + ry;
+            const cAngle = slot.angle + ship.rotation;
+            
+            let hasTarget = false;
+            for(let e of enemies) {
+                if(e.dead) continue;
+                const dist = Math.hypot(e.x - cx, e.y - cy);
+                // INCREASED RANGE FROM 450 to 700
+                if(dist < 700) {
+                    let angleToEnemy = Math.atan2(e.y - cy, e.x - cx);
+                    let angleDiff = angleToEnemy - cAngle;
+                    while (angleDiff <= -Math.PI) angleDiff += Math.PI*2;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI*2;
+                    if (Math.abs(angleDiff) < slot.arc / 2) { hasTarget = true; break; }
+                }
+            }
+            if(hasTarget) priorityCannons.push({index: index, type: slot.type});
+        });
+
+        priorityCannons.sort((a, b) => {
+            if (a.type === 'cannon' && b.type !== 'cannon') return -1;
+            if (a.type !== 'cannon' && b.type === 'cannon') return 1;
+            return 0;
+        });
+
+        if (priorityCannons.length > 0) {
+            let idx = 0;
+            while (availableCrew > 0) {
+                crewAssignments[priorityCannons[idx % priorityCannons.length].index]++;
+                availableCrew--;
+                idx++;
+            }
+        } else {
+            let idx = 0;
+            while (availableCrew > 0) {
+                crewAssignments[idx % ship.cannons.length]++;
+                availableCrew--;
+                idx++;
+            }
+        }
+    }
+
+    ship.cannons.forEach((cannon, i) => {
+        if(!ship.slots[cannon.slotIndex]) return;
+        const crewCount = crewAssignments[i];
+        const slot = ship.slots[cannon.slotIndex];
+        cannon.assignedCrew = crewCount; 
+
+        if (crewCount > 0) {
+            const baseFrames = (slot.type === 'swivel') ? 180 : 240;
+            const reduction = (crewCount - 1) * 30;
+            let finalFrames = Math.max(30, baseFrames - reduction);
+            cannon.loaded += (100 / finalFrames);
+        }
+
+        if (cannon.loaded >= 100) {
+            const cos = Math.cos(ship.rotation); const sin = Math.sin(ship.rotation);
+            const rx = slot.x * cos - slot.y * sin; const ry = slot.x * sin + slot.y * cos;
+            const cx = ship.x + rx; const cy = ship.y + ry;
+            const cAngle = slot.angle + ship.rotation;
+
+            let bestTarget = null; let minDist = 700; // INCREASED RANGE
+            for(let e of enemies) {
+                if(e.dead) continue;
+                const dist = Math.hypot(e.x - cx, e.y - cy);
+                if(dist < minDist) {
+                    let angleToEnemy = Math.atan2(e.y - cy, e.x - cx);
+                    let angleDiff = angleToEnemy - cAngle;
+                    while (angleDiff <= -Math.PI) angleDiff += Math.PI*2;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI*2;
+                    if (Math.abs(angleDiff) < slot.arc / 2) { minDist = dist; bestTarget = e; }
+                }
+            }
+
+            if (bestTarget) {
+                const angle = Math.atan2(bestTarget.y - cy, bestTarget.x - cx);
+                const dmg = (slot.type === 'swivel') ? 5 : 10;
+                const speed = 8; 
+                const p = new Projectile(cx, cy, Math.cos(angle)*speed, Math.sin(angle)*speed, false, dmg);
+                p.size = 4; p.gravity = 0.1;
+                projectiles.push(p);
+                playBoom(slot.type === 'swivel');
+                cannon.loaded = 0; 
+            } else {
+                cannon.loaded = 100; 
+            }
+        }
+    });
+    
+    document.getElementById('idleCrew').innerText = ship.bilgeCrew > 0 ? `Bilging: ${ship.bilgeCrew}` : '0';
+}
+
+function takeDamage(amt) {
+    if (ship.sinking) return;
+    ship.hp -= amt;
+    spawnParticles(ship.x, ship.y, 10, '#8B4513');
+    playCrunch(); 
+    updateHUD();
+    if (ship.hp <= 0) { ship.hp = 0; startSinking(); }
+}
+
+function startSinking() { ship.sinking = true; ship.sinkProgress = 0; ship.sinkAngle = 0; }
+
+function spawnWave() {
+    if(ship.sinking || inPort || inMenu) return;
+    spawnTimer++;
+    if (spawnTimer > CONFIG.enemySpawnRate && enemiesToSpawn > 0) {
+        spawnTimer = 0;
+        
+        // Boss Round Logic
+        if (wave % 5 === 0 && enemiesToSpawn === 1) { // The one enemy is the boss
+             enemies.push(new Enemy('boss'));
+             enemiesToSpawn--;
+        } else {
+            let type = 'raft';
+            if (wave > 2 && Math.random() < 0.4) type = 'gunboat';
+            if (wave > 4 && Math.random() < 0.2) type = 'serpent';
+            enemies.push(new Enemy(type));
+            enemiesToSpawn--;
+        }
+    }
+    
+    if (enemiesToSpawn === 0 && enemies.filter(e => !e.dead).length === 0) {
+        enterPort();
+    }
+    document.getElementById('enemyCount').innerText = enemies.filter(e => !e.dead).length + enemiesToSpawn;
+}
+
+function startNextWave() {
+    wave++;
+    if (wave % 5 === 0) {
+        enemiesToSpawn = 1; // Just the boss
+        spawnFloatingText(ship.x, ship.y - 100, "BOSS WAVE!", "#ff0000");
+    } else {
+        enemiesToSpawn = 5 + Math.floor(wave * 2);
+        spawnFloatingText(ship.x, ship.y - 100, `WAVE ${wave}`, "#ffff00");
+    }
+    CONFIG.enemySpawnRate = Math.max(100, 300 - (wave * 5)); 
+    
+    document.getElementById('waveDisplay').innerText = wave;
+}
+
+function enterPort() {
+    inPort = true;
+    gameActive = false;
+    document.getElementById('portUI').style.display = 'flex';
+    document.getElementById('hud').style.display = 'flex';
+    document.getElementById('portGold').innerText = gold;
+    initShop(); 
+}
+
+function leavePort() {
+    initAudio();
+    inPort = false;
+    gameActive = true;
+    document.getElementById('portUI').style.display = 'none';
+    startNextWave();
+}
+
+// --- SCENERY ---
+
+function drawPalmTree(x, y, scale) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(10, -20, 5, -60); ctx.lineWidth = 6; ctx.strokeStyle = '#854d0e'; ctx.stroke();
+    ctx.translate(5, -60); ctx.fillStyle = '#15803d';
+    for(let i=0; i<5; i++) { ctx.beginPath(); ctx.rotate((Math.PI * 2) / 5); ctx.ellipse(15, 0, 20, 5, 0, 0, Math.PI*2); ctx.fill(); }
+    ctx.restore();
+}
+
+function drawPortScenery() {
+    ctx.fillStyle = '#0ea5e9'; ctx.fillRect(0,0,canvas.width, canvas.height);
+    ctx.fillStyle = '#fde047'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(canvas.width, 0); ctx.lineTo(canvas.width, canvas.height * 0.3);
+    for(let x=canvas.width; x>=0; x-=10) { const y = canvas.height * 0.3 + Math.sin(x * 0.02) * 15; ctx.lineTo(x, y); }
+    ctx.lineTo(0, canvas.height * 0.3); ctx.fill();
+    const dockX = (canvas.width - 80) / 2;
+    ctx.fillStyle = '#78350f'; ctx.fillRect(dockX, 0, 80, ship.y - 60); 
+    drawPalmTree(40, 80, 1.2); drawPalmTree(canvas.width - 50, 100, 1.0); drawPalmTree(canvas.width - 120, 60, 0.8);
+    ctx.strokeStyle = '#573a25'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(dockX + 10, ship.y - 80); ctx.lineTo(ship.x - 20, ship.y - 40); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(dockX + 70, ship.y - 80); ctx.lineTo(ship.x + 20, ship.y - 40); ctx.stroke();
+}
+
+function drawSea() {
+    wavesOffset = (wavesOffset + 1) % 40;
+    ctx.fillStyle = CONFIG.seaColor; ctx.fillRect(0,0,canvas.width, canvas.height);
+    ctx.strokeStyle = CONFIG.waveColor; ctx.lineWidth = 2; ctx.beginPath();
+    for(let y = -40; y < canvas.height; y += 40) {
+        const drawY = y + wavesOffset;
+        for(let x = 0; x < canvas.width; x += 40) {
+            ctx.moveTo(x, drawY); ctx.quadraticCurveTo(x+10, drawY-5, x+20, drawY); ctx.quadraticCurveTo(x+30, drawY+5, x+40, drawY);
+        }
+    }
+    ctx.stroke();
+}
+
+function drawShip() {
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    
+    if (ship.sinking) {
+        ship.sinkProgress += 0.005;
+        ship.sinkAngle += 0.005;
+        const scale = 1 - (ship.sinkProgress * 0.5);
+        ctx.rotate(ship.sinkAngle); ctx.scale(scale, scale); ctx.globalAlpha = 1 - ship.sinkProgress;
+        if (Math.random() > 0.5) spawnParticles(0, 0, 1, '#f97316');
+        if (ship.sinkProgress >= 1) {
+            gameActive = false; document.getElementById('finalWave').innerText = wave; document.getElementById('gameOverScreen').style.display = 'flex';
+        }
+    } else {
+        ctx.rotate(ship.rotation);
+    }
+
+    if (!ship.sinking) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ship.slots.forEach(slot => {
+            ctx.beginPath(); ctx.moveTo(slot.x, slot.y); ctx.arc(slot.x, slot.y, 80, slot.angle - slot.arc/2, slot.angle + slot.arc/2); ctx.stroke();
+        });
+    }
+
+    ctx.fillStyle = CONFIG.shipColor; ctx.beginPath(); ctx.ellipse(0, 0, ship.w/2, ship.h/2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = '#3e2723'; ctx.stroke();
+    ctx.fillStyle = CONFIG.deckColor; ctx.beginPath(); ctx.ellipse(0, 0, ship.w/2 - 5, ship.h/2 - 10, 0, 0, Math.PI*2); ctx.fill();
+
+    ship.cannons.forEach((cannon, i) => {
+        if(!ship.slots[cannon.slotIndex]) return;
+        const slot = ship.slots[cannon.slotIndex];
+        ctx.save();
+        ctx.translate(slot.x, slot.y);
+        ctx.rotate(slot.angle);
+        ctx.fillStyle = '#000';
+        if (slot.type === 'swivel') {
+            ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill(); ctx.fillRect(0, -2, 10, 4);
+        } else {
+            ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill(); ctx.fillRect(0, -4, 15, 8); 
+        }
+        if (cannon.loaded < 100) {
+            ctx.fillStyle = 'red'; ctx.fillRect(-10, -15, 20, 4); ctx.fillStyle = '#0f0'; ctx.fillRect(-10, -15, 20 * (cannon.loaded/100), 4);
+        }
+        if (cannon.assignedCrew > 0) {
+            ctx.fillStyle = 'white';
+            for(let c=0; c<cannon.assignedCrew; c++) { ctx.beginPath(); ctx.arc(-5 - (c*4), 0, 2, 0, Math.PI*2); ctx.fill(); }
+        }
+        ctx.restore();
+    });
+
+    if (ship.bilgeCrew > 0) {
+        ctx.fillStyle = '#3b82f6';
+        for(let i=0; i<ship.bilgeCrew; i++) { ctx.beginPath(); ctx.arc((Math.random()-0.5)*20, (Math.random()-0.5)*40, 2, 0, Math.PI*2); ctx.fill(); }
+    }
+
+    if (!ship.sinking && !inMenu) {
+        ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(3, 3, 10, 0, Math.PI*2); ctx.fill();
+        const guide = document.getElementById('touchGuide');
+        if(isDraggingAmmo || enemiesKilled > 0 || inPort) guide.style.display = 'none'; else guide.style.display = 'block';
+    }
+    
+    if (isDraggingAmmo && !ship.sinking && !inMenu) {
+        ctx.restore(); 
+        const dx = dragCurrentPos.x - dragStartPos.x;
+        const dy = dragCurrentPos.y - dragStartPos.y;
+        if (Math.hypot(dx, dy) > 10) {
+            ctx.beginPath(); ctx.moveTo(ship.x, ship.y); ctx.lineTo(ship.x + dx, ship.y + dy);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; ctx.setLineDash([5, 5]); ctx.lineWidth = 3; ctx.stroke(); ctx.setLineDash([]);
+            ctx.beginPath(); ctx.arc(ship.x + dx, ship.y + dy, 5, 0, Math.PI*2); ctx.strokeStyle = 'white'; ctx.stroke();
+        }
+        ctx.save();
+    }
+    ctx.restore();
+}
+
+function gameLoop() {
+    try {
+        if (!gameActive && !ship.sinking && !inPort && !inMenu) return;
+
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+
+        if (inMenu) {
+            drawSea();
+            drawShip();
+        } else if (inPort) {
+            drawPortScenery();
+            drawShip();
+        } else {
+            if (!isPaused) {
+                frameCount++;
+                spawnWave();
+                updateCaptain();
+                updateCrewLogistics(); 
+                enemies.forEach(e => e.update());
+                projectiles.forEach(p => p.update());
+                enemyProjectiles.forEach(p => p.update());
+                particles.forEach(p => p.update());
+                splashes.forEach(s => s.update());
+                enemies = enemies.filter(e => !e.dead);
+                projectiles = projectiles.filter(p => p.active);
+                enemyProjectiles = enemyProjectiles.filter(p => p.active);
+                particles = particles.filter(p => p.life > 0);
+                splashes = splashes.filter(s => s.life > 0);
+            }
+            drawSea();
+            drawShip();
+            splashes.forEach(s => s.draw()); 
+            enemies.forEach(e => e.draw());
+            projectiles.forEach(p => p.draw());
+            enemyProjectiles.forEach(p => p.draw());
+            particles.forEach(p => p.draw());
+        }
+        
+        if (gameActive || ship.sinking || inPort || inMenu) requestAnimationFrame(gameLoop);
+    } catch(e) {
+        console.error("Game Loop Error", e);
+        requestAnimationFrame(gameLoop);
+    }
+}
+
+function initShop() {
+    const grid = document.getElementById('shopGrid');
+    grid.innerHTML = '';
+    SHOP_ITEMS.forEach(item => {
+        const btn = document.createElement('div');
+        btn.className = 'shop-btn';
+        btn.id = `btn-${item.id}`;
+        btn.onclick = () => purchase(item);
+        let countHTML = '';
+        if(item.type === 'upgrade') { 
+            let val = 0;
+            if(item.id === 'cannon') val = ship.cannons.filter(c => ship.slots[c.slotIndex].type === 'cannon').length;
+            if(item.id === 'swivel') val = ship.cannons.filter(c => ship.slots[c.slotIndex].type === 'swivel').length;
+            if(item.id === 'crew') val = ship.crew;
+            if(item.id === 'ship') val = ship.tier;
+            if(item.id === 'bilge') val = ship.bilgeLevel;
+            countHTML = `<div class="owned-count" id="count-${item.id}">${val}</div>`; 
+        }
+        btn.innerHTML = `${countHTML}<div class="shop-icon">${item.icon}</div><div class="shop-name">${item.name}</div><div class="price">${item.cost}g</div>`;
+        
+        let isDisabled = gold < item.cost;
+        if(item.id === 'repair') isDisabled = true; 
+        if(item.id === 'ship' && ship.tier >= 3) isDisabled = true;
+        if(item.id === 'captain' && ship.hasCaptain) isDisabled = true;
+        if(item.id === 'cannon') {
+            const hasSlot = ship.slots.some((s, i) => s.type === 'cannon' && !ship.cannons.some(c => c.slotIndex === i));
+            if(!hasSlot) isDisabled = true;
+        }
+        if(item.id === 'swivel') {
+            const hasSlot = ship.slots.some((s, i) => s.type === 'swivel' && !ship.cannons.some(c => c.slotIndex === i));
+            if(!hasSlot) isDisabled = true;
+        }
+        if(isDisabled) btn.classList.add('disabled');
+        
+        grid.appendChild(btn);
+    });
+}
+
+function purchase(item) {
+    if (gold >= item.cost) {
+        if (item.action()) {
+            addGold(-item.cost);
+            if (item.type === 'upgrade' || item.type === 'unique') {
+                item.cost = Math.floor(item.cost * 1.2);
+            }
+            initShop(); 
+        }
+    }
+}
+
+function startGame(startWave) {
+    wave = startWave - 1; // So next wave logic bumps it to correct number
+    if (startWave === 1) gold = 0;
+    else if (startWave === 10) gold = 3000;
+    else if (startWave === 20) gold = 8000;
+    else if (startWave === 30) gold = 15000;
+    else if (startWave === 40) gold = 25000;
+    
+    inMenu = false;
+    document.getElementById('startMenu').style.display = 'none';
+    
+    updateHUD();
+    enterPort(); // Start at port to buy items
+}
+
+function addGold(amt) { gold += amt; updateHUD(); }
+
+function updateHUD() {
+    document.getElementById('goldDisplay').innerText = gold;
+    document.getElementById('hpDisplay').innerText = Math.floor(ship.hp);
+    document.getElementById('crewDisplay').innerText = ship.crew;
+    const hpEl = document.getElementById('hpDisplay');
+    hpEl.style.color = (ship.hp < 30) ? 'red' : '#f87171';
+}
+
+function spawnFloatingText(x, y, text, color) {
+    const el = document.createElement('div');
+    el.className = 'floating-text'; el.innerText = text; el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.color = color;
+    document.body.appendChild(el); setTimeout(() => el.remove(), 1000);
+}
+
+function spawnParticles(x, y, count, color) {
+    for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
+}
+
+function togglePause() {
+    if (!gameActive || ship.sinking || inPort || inMenu) return;
+    isPaused = !isPaused;
+    document.getElementById('pauseScreen').style.display = isPaused ? 'flex' : 'none';
+    if (!isPaused) requestAnimationFrame(gameLoop);
+}
+
+function resetGame() {
+    ship.hp = 100; ship.maxHp = 100; ship.tier = 1; ship.cannons = []; ship.crew = 0; ship.bilgeLevel = 0; ship.sinking = false; ship.hasCaptain = false; ship.rotation = 0;
+    gold = 0; wave = 1; enemies = []; projectiles = []; enemyProjectiles = []; particles = []; splashes = []; enemiesKilled = 0;
+    gameActive = false; isPaused = false; inPort = false; enemiesToSpawn = 5;
+    
+    inMenu = true; // Go back to menu
+    document.getElementById('startMenu').style.display = 'flex';
+    document.getElementById('gameOverScreen').style.display = 'none';
+    document.getElementById('portUI').style.display = 'none';
+    document.getElementById('hud').style.display = 'none'; // Hide hud in menu
+    
+    updateShipStats();
+    updateHUD();
+}
+
+function init() {
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+    resize();
+    window.addEventListener('resize', resize);
+
+    canvas.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', moveDrag);
+    window.addEventListener('mouseup', endDrag);
+
+    canvas.addEventListener('touchstart', (e) => {
+        if(e.target === canvas) e.preventDefault();
+        startDrag(e.changedTouches[0]);
+    }, {passive: false});
+
+    window.addEventListener('touchmove', (e) => {
+        if(isDraggingAmmo) e.preventDefault();
+        moveDrag(e.changedTouches[0]);
+    }, {passive: false});
+    
+    window.addEventListener('touchend', (e) => endDrag(e.changedTouches[0]));
+
+    updateShipStats();
+    
+    // Start in Menu State
+    inMenu = true;
+    requestAnimationFrame(gameLoop);
+}
+init();
+</script>
+</body>
+</html>
