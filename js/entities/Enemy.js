@@ -18,7 +18,10 @@ export class Enemy {
         this.type = type;
         this.dead = false;
         this.maxHp = 20;
-        this.speed = 0.2; 
+        
+        // CHANGED: Increased basic enemy speed from 0.2 to 0.35
+        this.speed = 0.35; 
+        
         this.size = 20;
         this.angle = 0;
         this.reload = 0;
@@ -33,8 +36,6 @@ export class Enemy {
         if (this.type === 'gunboat') { this.maxHp = 30; this.speed = 0.4; this.color = '#374151'; } 
         else if (this.type === 'serpent') { this.maxHp = 60; this.speed = 0.4; this.color = '#047857'; this.size = 25; }
         else if (this.type === 'boss') {
-            // WAS: 300 + (wave * 50) -> Wave 5 = 550 HP
-            // NOW: 150 + (wave * 25) -> Wave 5 = 275 HP
             this.maxHp = 150 + (wave * 25); 
             this.speed = 0.1; 
             this.color = '#7f1d1d'; 

@@ -10,17 +10,19 @@ export function getMainCannonStats() {
     const crew = GameState.ship.mainCannonCrew;
     
     // Base Stats (Level 0)
-    // Fixed speed and range.
     let cooldown = 2500; 
-    let damage = 15; 
-    let speed = 6; // Constant speed
-    let life = 60; // Duration (frames). Range = speed * life. (6 * 60 = 360px range)
+    // NERFED: Reduced base damage from 15 to 10
+    let damage = 10; 
+    let speed = 6; 
+    let life = 135; 
 
     // Crew Bonuses
     cooldown -= (crew * 400); 
-    damage += (crew * 8); 
-    speed += (crew * 1.5); // Faster projectiles
-    life += (crew * 5);    // Longer range
+    // NERFED: Reduced bonus from +8 to +5
+    damage += (crew * 5); 
+    
+    speed += (crew * 2.2); 
+    life -= (crew * 2);    
     
     // Caps
     cooldown = Math.max(250, cooldown); 
@@ -135,12 +137,14 @@ export function updateCrewLogistics() {
         const hpDeficitPct = 1 - (ship.hp / ship.maxHp);
         let neededForBilge = Math.ceil(availableCrew * hpDeficitPct * 1.5); 
         if (ship.hp < 30) neededForBilge = availableCrew;
-        const capacity = ship.bilgeLevel * 3;
+        
+        const capacity = ship.bilgeLevel; 
+        
         bilgeAssigned = Math.min(neededForBilge, availableCrew, capacity);
         availableCrew -= bilgeAssigned;
         
         if (GameState.frameCount % 60 === 0 && bilgeAssigned > 0) {
-            const repairAmt = 0.5 * bilgeAssigned * ship.bilgeLevel;
+            const repairAmt = 0.8 * bilgeAssigned * ship.bilgeLevel;
             ship.hp = Math.min(ship.hp + repairAmt, ship.maxHp);
             updateHUD(); 
         }
