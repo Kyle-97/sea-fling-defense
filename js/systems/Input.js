@@ -2,6 +2,8 @@
 import { GameState } from '../state.js';
 import { Projectile } from '../entities/Projectile.js';
 import { playBoom } from './Audio.js';
+import { spawnFloatingText } from './UI.js';
+import { getHeroReloadTime } from '../entities/Ship.js'; // Import the helper
 
 export function initInput(canvas) {
     // Mouse Events
@@ -29,12 +31,9 @@ function startDrag(e) {
     const x = e.clientX || e.pageX;
     const y = e.clientY || e.pageY;
     
-    // Check if touching near ship
     const dist = Math.hypot(x - GameState.ship.x, y - GameState.ship.y);
     if (dist < 100) { 
         GameState.isDraggingAmmo = true;
-        
-        // Hide the tutorial guide if it exists
         const guide = document.getElementById('touchGuide');
         if(guide) guide.style.display = 'none';
         
@@ -53,32 +52,40 @@ function moveDrag(e) {
 function endDrag(e) {
     if (!GameState.isDraggingAmmo) return;
     
+    // --- RELOAD CHECK ---
     const now = Date.now();
+    const cooldownMs = getHeroReloadTime(); // Use shared helper
+    
+    if (now - GameState.lastFireTime < cooldownMs) {
+        spawnFloatingText(GameState.ship.x, GameState.ship.y - 50, "RELOADING...", "#9ca3af");
+        GameState.isDraggingAmmo = false;
+        return;
+    }
+    // --------------------
+
     const dt = now - GameState.dragStartPos.time;
     const dx = GameState.dragCurrentPos.x - GameState.dragStartPos.x;
     const dy = GameState.dragCurrentPos.y - GameState.dragStartPos.y;
     
     // Physics Calculation (Fling logic)
     const timeFactor = Math.max(dt, 40); 
-    const power = 40; 
+    const power = 25; // Slower projectiles
     let vx = (dx / timeFactor) * power; 
     let vy = (dy / timeFactor) * power;
     
     const mag = Math.hypot(vx, vy);
     
-    // Only fire if drag was significant enough
     if (mag > 3) { 
-        const maxSpeed = 16;
-        // Cap speed
+        const maxSpeed = 10;
         if (mag > maxSpeed) { 
             const ratio = maxSpeed / mag; 
             vx *= ratio; 
             vy *= ratio; 
         }
         
-        // Create Projectile
         GameState.projectiles.push(new Projectile(GameState.ship.x, GameState.ship.y, vx, vy));
         playBoom();
+        GameState.lastFireTime = now; 
     }
     
     GameState.isDraggingAmmo = false;

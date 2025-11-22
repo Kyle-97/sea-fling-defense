@@ -1,13 +1,18 @@
 // Ship entity definition
 import { GameState } from '../state.js';
 import { Projectile } from './Projectile.js';
-import { playBoom, playCrunch } from '../systems/Audio.js'; // Import playCrunch
+import { playBoom, playCrunch } from '../systems/Audio.js';
 import { updateHUD } from '../systems/UI.js';
-import { Particle } from './Particle.js'; // Import for visual effects
+import { Particle } from './Particle.js';
 
-// ... (Keep updateShipStats and updateCaptain exactly as they were) ...
+// --- NEW HELPER ---
+export function getHeroReloadTime() {
+    // Base 1.5s, -0.2s per level. Min 0.2s.
+    return Math.max(200, 1500 - (GameState.ship.reloadLevel * 200));
+}
+// ------------------
+
 export function updateShipStats() {
-    // ... existing code ...
     const ship = GameState.ship;
     ship.slots = [];
     if (ship.tier >= 1) {
@@ -35,7 +40,6 @@ export function updateShipStats() {
 }
 
 export function updateCaptain() {
-   // ... existing code ...
     const ship = GameState.ship;
     if(!ship.hasCaptain || ship.sinking) return;
     
@@ -76,14 +80,12 @@ export function updateCaptain() {
     ship.rotation += finalDiff * 0.015; 
 }
 
-// --- NEW EXPORT ---
 export function takeShipDamage(amount) {
     if (GameState.ship.sinking) return;
     
     GameState.ship.hp -= amount;
     playCrunch(); 
     
-    // Spawn particles
     for (let i = 0; i < 10; i++) {
         GameState.particles.push(new Particle(GameState.ship.x, GameState.ship.y, '#8B4513'));
     }
@@ -102,7 +104,6 @@ function startSinking() {
     GameState.ship.sinkAngle = 0; 
 }
 
-// ... (Keep updateCrewLogistics and fireCannonIfTargetFound exactly as they were) ...
 export function updateCrewLogistics() {
     const ship = GameState.ship;
     if(ship.sinking) return;
@@ -128,11 +129,30 @@ export function updateCrewLogistics() {
     ship.bilgeCrew = bilgeAssigned;
 
     if (availableCrew > 0 && ship.cannons.length > 0) {
-        let idx = 0;
-        while (availableCrew > 0) {
-            crewAssignments[idx % ship.cannons.length]++;
+        // Improved Logic from previous step: Prioritize active targets
+        let activeIndices = [];
+        let idleIndices = [];
+
+        ship.cannons.forEach((cannon, idx) => {
+            if (checkIfCannonHasTarget(cannon, ship.slots[cannon.slotIndex])) {
+                activeIndices.push(idx);
+            } else {
+                idleIndices.push(idx);
+            }
+        });
+
+        let i = 0;
+        while (availableCrew > 0 && activeIndices.length > 0) {
+            crewAssignments[activeIndices[i % activeIndices.length]]++;
             availableCrew--;
-            idx++;
+            i++;
+        }
+
+        i = 0;
+        while (availableCrew > 0 && idleIndices.length > 0) {
+            crewAssignments[idleIndices[i % idleIndices.length]]++;
+            availableCrew--;
+            i++;
         }
     }
 
@@ -155,6 +175,32 @@ export function updateCrewLogistics() {
     });
     
     document.getElementById('idleCrew').innerText = ship.bilgeCrew > 0 ? `Bilging: ${ship.bilgeCrew}` : '0';
+}
+
+function checkIfCannonHasTarget(cannon, slot) {
+    const ship = GameState.ship;
+    const cos = Math.cos(ship.rotation); 
+    const sin = Math.sin(ship.rotation);
+    const rx = slot.x * cos - slot.y * sin; 
+    const ry = slot.x * sin + slot.y * cos;
+    const cx = ship.x + rx; 
+    const cy = ship.y + ry;
+    const cAngle = slot.angle + ship.rotation;
+
+    for(let e of GameState.enemies) {
+        if(e.dead) continue;
+        const dist = Math.hypot(e.x - cx, e.y - cy);
+        if(dist < 700) {
+            let angleToEnemy = Math.atan2(e.y - cy, e.x - cx);
+            let angleDiff = angleToEnemy - cAngle;
+            while (angleDiff <= -Math.PI) angleDiff += Math.PI*2;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI*2;
+            if (Math.abs(angleDiff) < slot.arc / 2) { 
+                return true; 
+            }
+        }
+    }
+    return false;
 }
 
 function fireCannonIfTargetFound(cannon, slot) {

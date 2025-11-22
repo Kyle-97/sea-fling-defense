@@ -2,14 +2,16 @@
 import { GameState } from '../state.js';
 import { updateShipStats } from '../entities/Ship.js';
 
-// ... (Keep SHOP_ITEMS array exactly as it is) ...
 const SHOP_ITEMS = [
-    // ... keep existing items ...
     { id: 'crew', name: 'Crew', cost: 150, icon: '🏴‍☠️', type: 'upgrade', action: () => {
         GameState.ship.crew++; return true;
     }},
     { id: 'bilge', name: 'Bilge Pump', cost: 300, icon: '🪣', type: 'upgrade', action: () => {
         GameState.ship.bilgeLevel++; return true;
+    }},
+    { id: 'reload', name: 'Fast Load', cost: 500, icon: '⏱️', type: 'upgrade', action: () => {
+        if(GameState.ship.reloadLevel < 7) { GameState.ship.reloadLevel++; return true; }
+        return false;
     }},
     { id: 'cannon', name: 'Cannon', cost: 250, icon: '💣', type: 'upgrade', action: () => {
         const emptySlot = GameState.ship.slots.findIndex((s, i) => s.type === 'cannon' && !GameState.ship.cannons.some(c => c.slotIndex === i));
@@ -40,11 +42,9 @@ export function updateHUD() {
     hpEl.style.color = (GameState.ship.hp < 30) ? 'red' : '#f87171';
 }
 
-// --- NEW EXPORT ---
 export function addGold(amount) {
     GameState.gold += amount;
     updateHUD();
-    // Update port display if we are in port
     if(GameState.inPort) {
         document.getElementById('portGold').innerText = GameState.gold;
         initShop();
@@ -66,6 +66,7 @@ export function initShop() {
             if(item.id === 'crew') val = GameState.ship.crew;
             if(item.id === 'ship') val = GameState.ship.tier;
             if(item.id === 'bilge') val = GameState.ship.bilgeLevel;
+            if(item.id === 'reload') val = GameState.ship.reloadLevel;
             countHTML = `<div class="owned-count">${val}</div>`; 
         }
 
@@ -74,6 +75,7 @@ export function initShop() {
         let isDisabled = GameState.gold < item.cost;
         if(item.id === 'ship' && GameState.ship.tier >= 3) isDisabled = true;
         if(item.id === 'captain' && GameState.ship.hasCaptain) isDisabled = true;
+        if(item.id === 'reload' && GameState.ship.reloadLevel >= 7) isDisabled = true;
         if(item.id === 'cannon' || item.id === 'swivel') {
             const hasSlot = GameState.ship.slots.some((s, i) => s.type === item.id && !GameState.ship.cannons.some(c => c.slotIndex === i));
             if(!hasSlot) isDisabled = true;
@@ -89,7 +91,7 @@ export function initShop() {
 function purchase(item) {
     if (GameState.gold >= item.cost) {
         if (item.action()) {
-            addGold(-item.cost); // Reuse addGold logic
+            addGold(-item.cost); 
             if (item.type === 'upgrade' || item.type === 'unique') {
                 item.cost = Math.floor(item.cost * 1.2);
             }

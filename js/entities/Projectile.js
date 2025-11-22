@@ -2,14 +2,20 @@
 import { GameState } from '../state.js';
 import { Splash, Particle } from './Particle.js';
 import { playSplash, playCrunch } from '../systems/Audio.js';
-import { takeShipDamage } from './Ship.js'; // Import the new function
+import { takeShipDamage } from './Ship.js'; 
 
 export class Projectile {
     constructor(x, y, vx, vy, isEnemy = false, damage = 10) {
         this.x = x; this.y = y; this.vx = vx; this.vy = vy;
-        this.isEnemy = isEnemy; this.active = true; this.life = 180; 
-        this.size = isEnemy ? 4 : 8; this.height = 10; this.zVel = isEnemy ? 2 : 4; 
-        this.gravity = isEnemy ? 0.1 : 0.15; 
+        this.isEnemy = isEnemy; this.active = true; this.life = 250; // Increased life for slower travel
+        this.size = isEnemy ? 4 : 8; this.height = 10; 
+        
+        // UPDATED PHYSICS:
+        // Enemy: Higher arc (zVel 4 instead of 2) to reach far.
+        // Gravity: Lowered for everyone (0.08 instead of 0.15/0.1) so projectiles float longer.
+        this.zVel = isEnemy ? 4 : 4; 
+        this.gravity = 0.08; 
+        
         this.damage = damage;
         this.trail = [];
     }
@@ -37,7 +43,7 @@ export class Projectile {
         }
         if (this.life <= 0) this.active = false;
 
-        // --- COLLISION LOGIC RESTORED ---
+        // --- COLLISION LOGIC ---
         const hitHeightThreshold = this.isEnemy ? 30 : 100; 
         
         if (this.active && this.height < hitHeightThreshold && this.height > -5) { 
@@ -57,7 +63,7 @@ export class Projectile {
                 // Player shooting Enemies
                 for (let e of GameState.enemies) {
                     if (!e.dead && Math.hypot(e.x - this.x, e.y - this.y) < e.size + this.size + 30) {
-                        e.takeDamage(this.damage); // Enemy needs takeDamage method
+                        e.takeDamage(this.damage);
                         
                         // Hit FX
                         for(let i=0; i<10; i++) {

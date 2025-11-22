@@ -12,11 +12,14 @@ export const GameState = {
     enemiesToSpawn: 5,
     spawnTimer: 0,
     
-    // --- New Drag State for Shooting ---
+    // --- Input State ---
     isDraggingAmmo: false,
     dragStartPos: { x: 0, y: 0, time: 0 },
     dragCurrentPos: { x: 0, y: 0 },
-    // -----------------------------------
+    
+    // --- Reload State ---
+    lastFireTime: 0, // Track when we last shot
+    // --------------------
 
     // Lists
     projectiles: [],
@@ -38,6 +41,7 @@ export const GameState = {
         bilgeLevel: 0, 
         bilgeCrew: 0, 
         hasCaptain: false,
+        reloadLevel: 0, // Track reload upgrades
         sinking: false,
         sinkProgress: 0,
         sinkAngle: 0
@@ -52,6 +56,7 @@ export const GameState = {
         this.ship.bilgeLevel = 0; 
         this.ship.sinking = false; 
         this.ship.hasCaptain = false; 
+        this.ship.reloadLevel = 0; 
         this.ship.rotation = 0;
         this.gold = 0; 
         this.wave = 1; 
@@ -67,7 +72,7 @@ export const GameState = {
         this.enemiesToSpawn = 5;
         this.inMenu = true;
         
-        // Reset Drag
         this.isDraggingAmmo = false;
+        this.lastFireTime = 0;
     }
 };
