@@ -5,7 +5,7 @@ import { initInput } from './systems/Input.js';
 import { drawGame } from './systems/Renderer.js';
 import { initAudio, toggleMusic } from './systems/Audio.js';
 import { updateShipStats, updateCaptain, updateCrewLogistics } from './entities/Ship.js';
-import { updateHUD, initShop, spawnFloatingText } from './systems/UI.js';
+import { updateHUD, initShop, spawnFloatingText, updateInGameAmmoUI } from './systems/UI.js';
 import { Enemy } from './entities/Enemy.js';
 
 const canvas = document.getElementById('gameCanvas');
@@ -17,7 +17,6 @@ function startGame(startWave) {
     GameState.wave = startWave - 1; 
     
     // Set starting gold based on difficulty
-    // CHANGED: Give 100g head start on Wave 1 (was 0)
     if (startWave === 1) GameState.gold = 100;
     else if (startWave === 10) GameState.gold = 3000;
     else if (startWave === 20) GameState.gold = 8000;
@@ -37,6 +36,7 @@ function enterPort() {
     GameState.gameActive = false;
     document.getElementById('portUI').style.display = 'flex';
     document.getElementById('portGold').innerText = GameState.gold;
+    updateInGameAmmoUI(); // Hide ammo UI
     initShop(); 
 }
 
@@ -45,6 +45,7 @@ export function leavePort() {
     GameState.inPort = false;
     GameState.gameActive = true;
     document.getElementById('portUI').style.display = 'none';
+    updateInGameAmmoUI(); // Show ammo UI
     startNextWave();
 }
 
@@ -56,8 +57,6 @@ function startNextWave() {
         GameState.enemiesToSpawn = 1;
         spawnFloatingText(GameState.ship.x, GameState.ship.y - 100, "BOSS WAVE!", "#ff0000");
     } else {
-        // CHANGED: Gentler scaling. Was 5 + (wave * 2).
-        // Now starts at 5 (4+1) and grows by 1 per wave.
         GameState.enemiesToSpawn = 4 + GameState.wave;
         spawnFloatingText(GameState.ship.x, GameState.ship.y - 100, `WAVE ${GameState.wave}`, "#ffff00");
     }
@@ -100,12 +99,17 @@ function resetGame() {
     document.getElementById('gameOverScreen').style.display = 'none';
     document.getElementById('portUI').style.display = 'none';
     document.getElementById('hud').style.display = 'none';
+    updateInGameAmmoUI(); // Hide UI
 }
 
 function togglePause() {
     if (!GameState.gameActive || GameState.ship.sinking || GameState.inPort || GameState.inMenu) return;
     GameState.isPaused = !GameState.isPaused;
     document.getElementById('pauseScreen').style.display = GameState.isPaused ? 'flex' : 'none';
+    
+    // Hide/Show ammo controls on pause
+    const ammoUI = document.getElementById('ammoControls');
+    if(ammoUI) ammoUI.style.display = GameState.isPaused ? 'none' : 'flex';
 }
 
 // --- Initialization ---
@@ -128,6 +132,15 @@ function setupEventListeners() {
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+
+    // --- ZOOM LOGIC ---
+    if (canvas.width < 600) {
+        CONFIG.zoom = 0.75;
+    } else {
+        CONFIG.zoom = 1.0;
+    }
+    // ------------------
+
     if(GameState.inMenu) {
         GameState.ship.x = canvas.width / 2;
         GameState.ship.y = canvas.height * 0.6;
@@ -158,6 +171,7 @@ function gameLoop() {
              GameState.gameActive = false;
              document.getElementById('finalWave').innerText = GameState.wave;
              document.getElementById('gameOverScreen').style.display = 'flex';
+             updateInGameAmmoUI();
         }
     }
     

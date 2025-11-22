@@ -5,31 +5,40 @@ import { playBoom, playCrunch } from '../systems/Audio.js';
 import { updateHUD } from '../systems/UI.js';
 import { Particle } from './Particle.js';
 
-// --- UPDATED STATS CALCULATOR ---
 export function getMainCannonStats() {
     const crew = GameState.ship.mainCannonCrew;
+    const ammo = GameState.ship.ammo;
     
     // Base Stats (Level 0)
-    let cooldown = 2500; 
-    // NERFED: Reduced base damage from 15 to 10
+    let cooldown = 2000; 
     let damage = 10; 
     let speed = 6; 
     let life = 135; 
 
     // Crew Bonuses
     cooldown -= (crew * 400); 
-    // NERFED: Reduced bonus from +8 to +5
     damage += (crew * 5); 
-    
     speed += (crew * 2.2); 
     life -= (crew * 2);    
     
+    // --- AMMO MODIFIERS ---
+    if (ammo === 'heavy') {
+        damage *= 2.5;     // Huge damage
+        cooldown *= 1.5;   // Slow reload
+        speed *= 0.8;      // Heavy projectile
+    } 
+    else if (ammo === 'grape') {
+        damage *= 0.4;     // Low damage per pellet (fires 3)
+        cooldown *= 0.8;   // Fast reload
+        life *= 0.6;       // Short range
+    }
+    // ----------------------
+
     // Caps
     cooldown = Math.max(250, cooldown); 
     
     return { cooldown, damage, speed, life };
 }
-// ----------------------------
 
 export function updateShipStats() {
     const ship = GameState.ship;
