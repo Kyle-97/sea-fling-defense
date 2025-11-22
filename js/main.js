@@ -14,10 +14,11 @@ const ctx = canvas.getContext('2d');
 // --- Game Flow Control ---
 
 function startGame(startWave) {
-    GameState.wave = startWave - 1; // startNextWave will bump this to startWave
+    GameState.wave = startWave - 1; 
     
     // Set starting gold based on difficulty
-    if (startWave === 1) GameState.gold = 0;
+    // CHANGED: Give 100g head start on Wave 1 (was 0)
+    if (startWave === 1) GameState.gold = 100;
     else if (startWave === 10) GameState.gold = 3000;
     else if (startWave === 20) GameState.gold = 8000;
     else if (startWave === 30) GameState.gold = 15000;
@@ -28,7 +29,7 @@ function startGame(startWave) {
     document.getElementById('hud').style.display = 'flex';
     
     updateHUD();
-    enterPort(); // Start at port to buy items
+    enterPort(); 
 }
 
 function enterPort() {
@@ -55,7 +56,9 @@ function startNextWave() {
         GameState.enemiesToSpawn = 1;
         spawnFloatingText(GameState.ship.x, GameState.ship.y - 100, "BOSS WAVE!", "#ff0000");
     } else {
-        GameState.enemiesToSpawn = 5 + Math.floor(GameState.wave * 2);
+        // CHANGED: Gentler scaling. Was 5 + (wave * 2).
+        // Now starts at 5 (4+1) and grows by 1 per wave.
+        GameState.enemiesToSpawn = 4 + GameState.wave;
         spawnFloatingText(GameState.ship.x, GameState.ship.y - 100, `WAVE ${GameState.wave}`, "#ffff00");
     }
     
@@ -82,7 +85,6 @@ function spawnWaveLogic() {
         GameState.enemiesToSpawn--;
     }
     
-    // Check for Wave Clear
     if (GameState.enemiesToSpawn === 0 && GameState.enemies.length === 0) {
         enterPort();
     }
@@ -109,7 +111,6 @@ function togglePause() {
 // --- Initialization ---
 
 function setupEventListeners() {
-    // Start Menu Buttons
     document.querySelectorAll('.menu-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const wave = parseInt(btn.getAttribute('data-wave'));
@@ -117,14 +118,9 @@ function setupEventListeners() {
         });
     });
 
-    // HUD Buttons
     document.getElementById('musicBtn').addEventListener('click', toggleMusic);
     document.getElementById('pauseBtn').addEventListener('click', togglePause);
-    
-    // Port Buttons
     document.getElementById('sailBtn').addEventListener('click', leavePort);
-    
-    // Overlay Buttons
     document.getElementById('resumeBtn').addEventListener('click', togglePause);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
 }
@@ -132,7 +128,6 @@ function setupEventListeners() {
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    // Keep ship somewhat centered if resizing
     if(GameState.inMenu) {
         GameState.ship.x = canvas.width / 2;
         GameState.ship.y = canvas.height * 0.6;
@@ -147,14 +142,12 @@ function gameLoop() {
         updateCaptain();
         updateCrewLogistics(); 
         
-        // Update Entities
         GameState.enemies.forEach(e => e.update(GameState.ship, canvas.width, canvas.height));
         GameState.projectiles.forEach(p => p.update());
         GameState.enemyProjectiles.forEach(p => p.update());
         GameState.particles.forEach(p => p.update());
         GameState.splashes.forEach(s => s.update());
         
-        // Cleanup Dead Entities
         GameState.enemies = GameState.enemies.filter(e => !e.dead);
         GameState.projectiles = GameState.projectiles.filter(p => p.active);
         GameState.enemyProjectiles = GameState.enemyProjectiles.filter(p => p.active);
@@ -176,7 +169,7 @@ function init() {
     resize();
     window.addEventListener('resize', resize);
     initInput(canvas);
-    setupEventListeners(); // <--- This connects the buttons!
+    setupEventListeners(); 
     updateShipStats();
     requestAnimationFrame(gameLoop);
 }

@@ -5,28 +5,27 @@ import { playBoom, playCrunch } from '../systems/Audio.js';
 import { updateHUD } from '../systems/UI.js';
 import { Particle } from './Particle.js';
 
-// --- NEW STATS CALCULATOR ---
+// --- UPDATED STATS CALCULATOR ---
 export function getMainCannonStats() {
     const crew = GameState.ship.mainCannonCrew;
     
-    // Base Stats (0 Crew)
-    // Slower reload, lower damage
+    // Base Stats (Level 0)
+    // Fixed speed and range.
     let cooldown = 2500; 
-    let damage = 10; 
-    let maxSpeed = 18; // Controls max range
-    let powerScale = 20; // Controls drag sensitivity
+    let damage = 15; 
+    let speed = 6; // Constant speed
+    let life = 60; // Duration (frames). Range = speed * life. (6 * 60 = 360px range)
 
     // Crew Bonuses
-    // 1 Crew (Level 0 base) immediately gives a big boost
     cooldown -= (crew * 400); 
     damage += (crew * 8); 
-    maxSpeed += (crew * 2.5); 
-    powerScale += (crew * 2);
-
-    // Hard Caps
+    speed += (crew * 1.5); // Faster projectiles
+    life += (crew * 5);    // Longer range
+    
+    // Caps
     cooldown = Math.max(250, cooldown); 
     
-    return { cooldown, damage, maxSpeed, powerScale };
+    return { cooldown, damage, speed, life };
 }
 // ----------------------------
 
@@ -149,7 +148,6 @@ export function updateCrewLogistics() {
     ship.bilgeCrew = bilgeAssigned;
 
     // 2. Priority: Main Cannon
-    // Capacity is Level + 1 (So Level 0 = 1 slot)
     if (availableCrew > 0) {
         const capacity = ship.mainCannonLevel + 1;
         mainGunAssigned = Math.min(availableCrew, capacity);
@@ -185,7 +183,6 @@ export function updateCrewLogistics() {
         }
     }
 
-    // Apply Logic
     ship.cannons.forEach((cannon, i) => {
         if(!ship.slots[cannon.slotIndex]) return;
         const crewCount = crewAssignments[i];
@@ -204,9 +201,7 @@ export function updateCrewLogistics() {
         }
     });
     
-    // Update HUD Text
     const idle = Math.max(0, availableCrew);
-    // Shows "Main: [Current]/[Max]"
     document.getElementById('idleCrew').innerText = `Idle: ${idle} | Main: ${ship.mainCannonCrew}/${ship.mainCannonLevel + 1}`;
 }
 

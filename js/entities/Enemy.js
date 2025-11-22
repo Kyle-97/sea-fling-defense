@@ -8,7 +8,6 @@ import { takeShipDamage } from './Ship.js';
 
 export class Enemy {
     constructor(type, canvasWidth, canvasHeight, wave) {
-        // ... (constructor remains same)
         const side = Math.floor(Math.random() * 3);
         const margin = 50;
         
@@ -34,7 +33,9 @@ export class Enemy {
         if (this.type === 'gunboat') { this.maxHp = 30; this.speed = 0.4; this.color = '#374151'; } 
         else if (this.type === 'serpent') { this.maxHp = 60; this.speed = 0.4; this.color = '#047857'; this.size = 25; }
         else if (this.type === 'boss') {
-            this.maxHp = 300 + (wave * 50); 
+            // WAS: 300 + (wave * 50) -> Wave 5 = 550 HP
+            // NOW: 150 + (wave * 25) -> Wave 5 = 275 HP
+            this.maxHp = 150 + (wave * 25); 
             this.speed = 0.1; 
             this.color = '#7f1d1d'; 
             this.size = 50;
@@ -50,12 +51,17 @@ export class Enemy {
         
         this.moveBehavior(dx, dy, dist, canvasWidth, ship);
 
+        // --- COLLISION LOGIC ---
         if (dist < this.size + 40) { 
-            takeShipDamage(10); 
+            takeShipDamage(5); 
+            
             for(let i=0; i<15; i++) {
                 GameState.particles.push(new Particle(this.x, this.y, '#fff'));
             }
-            if(this.type !== 'boss') { this.dead = true; } 
+
+            if(this.type !== 'boss') { 
+                this.dead = true; 
+            } 
             return;
         }
 
@@ -69,6 +75,7 @@ export class Enemy {
         if (this.hp <= 0) {
             this.dead = true; 
             GameState.enemiesKilled++;
+            
             let val = 10;
             if(this.type === 'gunboat') val = 25;
             if(this.type === 'serpent') val = 40;
@@ -79,6 +86,7 @@ export class Enemy {
             for(let i=0; i<10; i++) {
                 GameState.particles.push(new Particle(this.x, this.y, this.color));
             }
+            
             if(this.type === 'boss') {
                 spawnFloatingText(this.x, this.y, "BOSS DEFEATED!", "#ffff00");
             }
@@ -86,7 +94,6 @@ export class Enemy {
     }
 
     moveBehavior(dx, dy, dist, canvasWidth, ship) {
-        // ... (Keep existing move behavior)
         if(this.type !== 'boss') {
             if (this.x < 20) this.x += 0.5;
             if (this.x > canvasWidth - 20) this.x -= 0.5;
@@ -128,29 +135,22 @@ export class Enemy {
             if (this.reload <= 0 && dist < shootDist) { 
                 this.reload = fireRate; 
                 
-                // --- CALCULATE TRAJECTORY TO HIT ---
                 const shotAngle = Math.atan2(ship.y - this.y, ship.x - this.x);
                 
-                // Physics Constants (Must match Projectile.js)
-                // zVel for enemies is 4.0 (I boosted it below to ensure range)
-                // Gravity is 0.1
                 const g = 0.1;
                 const zVel = 4.0; 
-                const flightTime = (2 * zVel) / g; // ~80 frames
+                const flightTime = (2 * zVel) / g; 
                 
-                // Calculate required speed to cross distance in flightTime
-                // randomness added (0.9 to 1.1) so they aren't perfect snipers
                 const accuracy = 0.9 + (Math.random() * 0.2);
                 const requiredSpeed = (dist / flightTime) * accuracy;
                 
                 if(this.type === 'boss') {
-                    GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle)*requiredSpeed, Math.sin(shotAngle)*requiredSpeed, true));
-                    // Spread shots
-                    GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle - 0.3)*requiredSpeed, Math.sin(shotAngle - 0.3)*requiredSpeed, true));
-                    GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle + 0.3)*requiredSpeed, Math.sin(shotAngle + 0.3)*requiredSpeed, true));
+                    GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle)*requiredSpeed, Math.sin(shotAngle)*requiredSpeed, true, 5));
+                    GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle - 0.3)*requiredSpeed, Math.sin(shotAngle - 0.3)*requiredSpeed, true, 5));
+                    GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle + 0.3)*requiredSpeed, Math.sin(shotAngle + 0.3)*requiredSpeed, true, 5));
                     playBoom(true);
                 } else {
-                    GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle)*requiredSpeed, Math.sin(shotAngle)*requiredSpeed, true));
+                    GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle)*requiredSpeed, Math.sin(shotAngle)*requiredSpeed, true, 5));
                     playBoom(true);
                 }
             }
