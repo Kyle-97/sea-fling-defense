@@ -43,9 +43,13 @@ export const GameState = {
         hasCaptain: false,
         
         // --- NEW MAIN CANNON STATE ---
-        mainCannonLevel: 0, // Upgrade Level (0 to 5)
+        mainCannonLevel: 0, // Upgrade Level
         mainCannonCrew: 0,  // Current Crew assigned
-        // -----------------------------
+        
+        // --- AMMO SYSTEM ---
+        ammo: 'standard',          // current equipped
+        unlockedAmmo: ['standard'], // inventory
+        // -------------------
 
         sinking: false,
         sinkProgress: 0,
@@ -64,6 +68,9 @@ export const GameState = {
         
         this.ship.mainCannonLevel = 0; 
         this.ship.mainCannonCrew = 0; 
+        
+        this.ship.ammo = 'standard';
+        this.ship.unlockedAmmo = ['standard'];
         
         this.ship.rotation = 0;
         this.gold = 0; 

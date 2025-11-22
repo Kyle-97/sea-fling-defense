@@ -4,7 +4,7 @@ import { Projectile } from '../entities/Projectile.js';
 import { playBoom } from './Audio.js';
 import { spawnFloatingText } from './UI.js';
 import { getMainCannonStats } from '../entities/Ship.js';
-import { CONFIG } from '../constants.js'; // Import CONFIG for zoom
+import { CONFIG } from '../constants.js';
 
 export function initInput(canvas) {
     canvas.addEventListener('mousedown', startDrag);
@@ -24,20 +24,15 @@ export function initInput(canvas) {
     window.addEventListener('touchend', (e) => endDrag(e.changedTouches[0]));
 }
 
-// --- Coordinate Helper ---
 function getLogicPos(e) {
     const cx = window.innerWidth / 2;
     const cy = window.innerHeight / 2;
     const screenX = e.clientX || e.pageX;
     const screenY = e.clientY || e.pageY;
-    
-    // Transform screen click to zoomed world coordinate
     const x = (screenX - cx) / CONFIG.zoom + cx;
     const y = (screenY - cy) / CONFIG.zoom + cy;
-    
     return { x, y };
 }
-// -------------------------
 
 function startDrag(e) {
     if(GameState.isPaused || !GameState.gameActive || GameState.ship.sinking || GameState.inPort || GameState.inMenu) return;
@@ -65,8 +60,6 @@ function endDrag(e) {
     if (!GameState.isDraggingAmmo) return;
     
     const stats = getMainCannonStats();
-
-    // 1. Reload Check
     const now = Date.now();
     if (now - GameState.lastFireTime < stats.cooldown) {
         spawnFloatingText(GameState.ship.x, GameState.ship.y - 50, "RELOADING...", "#9ca3af");
@@ -78,23 +71,39 @@ function endDrag(e) {
     const dy = GameState.dragCurrentPos.y - GameState.dragStartPos.y;
     const dragDist = Math.hypot(dx, dy);
 
-    // 2. Directional Shot (Fixed Speed)
     if (dragDist > 10) { 
         const angle = Math.atan2(dy, dx);
-        
-        // Constant velocity based on Stats
         const vx = Math.cos(angle) * stats.speed; 
         const vy = Math.sin(angle) * stats.speed;
         
-        // isDirect = true (Flat trajectory)
-        const p = new Projectile(GameState.ship.x, GameState.ship.y, vx, vy, false, stats.damage, true);
-        
-        // Set fixed life based on range stat
-        p.life = stats.life; 
-        
-        if (stats.damage > 20) { p.size = 10; }
-        
-        GameState.projectiles.push(p);
+        // --- AMMO LOGIC ---
+        if (GameState.ship.ammo === 'grape') {
+            // Fire 3 shots with spread
+            for(let i = -1; i <= 1; i++) {
+                const spreadAngle = angle + (i * 0.15); // 0.15 radians spread
+                const svx = Math.cos(spreadAngle) * stats.speed;
+                const svy = Math.sin(spreadAngle) * stats.speed;
+                
+                const p = new Projectile(GameState.ship.x, GameState.ship.y, svx, svy, false, stats.damage, true);
+                p.life = stats.life * (0.8 + Math.random() * 0.4); // Randomize range slightly
+                p.size = 6; 
+                GameState.projectiles.push(p);
+            }
+        } else {
+            // Standard / Heavy
+            const p = new Projectile(GameState.ship.x, GameState.ship.y, vx, vy, false, stats.damage, true);
+            p.life = stats.life; 
+            
+            if (GameState.ship.ammo === 'heavy') {
+                p.size = 12; // Big ball
+            } else if (stats.damage > 20) { 
+                p.size = 10; 
+            }
+            
+            GameState.projectiles.push(p);
+        }
+        // ------------------
+
         playBoom();
         GameState.lastFireTime = now; 
     }

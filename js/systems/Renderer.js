@@ -1,12 +1,11 @@
 // Renderer system for Sea Fling Defense
 import { CONFIG } from '../constants.js';
 import { GameState } from '../state.js';
-import { getMainCannonStats } from '../entities/Ship.js'; // Use the new stats for reload bar
+import { getMainCannonStats } from '../entities/Ship.js'; 
 
 export function drawGame(ctx, canvas) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // --- APPLY ZOOM ---
     ctx.save();
     if (CONFIG.zoom !== 1.0) {
         const cx = canvas.width / 2;
@@ -15,7 +14,6 @@ export function drawGame(ctx, canvas) {
         ctx.scale(CONFIG.zoom, CONFIG.zoom);
         ctx.translate(-cx, -cy);
     }
-    // ------------------
 
     if (GameState.inMenu) {
         drawSea(ctx, canvas);
@@ -39,14 +37,13 @@ export function drawGame(ctx, canvas) {
         drawDragLine(ctx);
     }
 
-    ctx.restore(); // Restore zoom
+    ctx.restore(); 
 }
 
 let wavesOffset = 0;
 function drawSea(ctx, canvas) {
     wavesOffset = (wavesOffset + 1) % 40;
     
-    // Draw logic adjusted for Zoom (Overdraw edges)
     const renderW = canvas.width * (1 / CONFIG.zoom) + 200;
     const renderH = canvas.height * (1 / CONFIG.zoom) + 200;
     const startX = -100;
@@ -73,7 +70,6 @@ function drawSea(ctx, canvas) {
 function drawPortScenery(ctx, canvas) {
     const ship = GameState.ship;
     
-    // Fill background safely
     ctx.fillStyle = '#0ea5e9'; 
     ctx.fillRect(-1000, -1000, canvas.width + 2000, canvas.height + 2000);
     
@@ -138,14 +134,12 @@ function drawShip(ctx) {
         });
     }
 
-    // Hull
     ctx.fillStyle = CONFIG.shipColor; 
     ctx.beginPath(); ctx.ellipse(0, 0, ship.w/2, ship.h/2, 0, 0, Math.PI*2); ctx.fill();
     ctx.lineWidth = 4; ctx.strokeStyle = '#3e2723'; ctx.stroke();
     ctx.fillStyle = CONFIG.deckColor; 
     ctx.beginPath(); ctx.ellipse(0, 0, ship.w/2 - 5, ship.h/2 - 10, 0, 0, Math.PI*2); ctx.fill();
 
-    // Cannons
     ship.cannons.forEach((cannon) => {
         if(!ship.slots[cannon.slotIndex]) return;
         const slot = ship.slots[cannon.slotIndex];
@@ -173,9 +167,8 @@ function drawShip(ctx) {
         ctx.restore();
     });
 
-    // --- DRAW MAIN CANNON CREW ---
     if (ship.mainCannonCrew > 0) {
-        ctx.fillStyle = '#fbbf24'; // Amber
+        ctx.fillStyle = '#fbbf24'; 
         for(let i=0; i<ship.mainCannonCrew; i++) {
             ctx.beginPath();
             const ox = (i % 2 === 0 ? -6 : 6);
@@ -184,9 +177,7 @@ function drawShip(ctx) {
             ctx.fill();
         }
     }
-    // -----------------------------
 
-    // Bilge Crew
     if (ship.bilgeCrew > 0) {
         ctx.fillStyle = '#3b82f6';
         for(let i=0; i<ship.bilgeCrew; i++) { 
@@ -232,14 +223,24 @@ function drawReloadBar(ctx) {
     ctx.strokeRect(x, y, barW, barH);
 }
 
-// ... (rest of entities unchanged)
 function drawEnemy(ctx, enemy) {
     if (enemy.dead) return;
     const ship = GameState.ship;
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
-    const faceAngle = Math.atan2(ship.y - enemy.y, ship.x - enemy.x);
-    ctx.rotate(faceAngle);
+    
+    // Rotation Logic:
+    // Basic enemies face the player.
+    // Boss faces its movement direction (broadside to player).
+    let rotationAngle = 0;
+    if (enemy.type === 'boss') {
+        // Use the angle stored in update() which is the movement vector
+        rotationAngle = enemy.currentRotation;
+    } else {
+        rotationAngle = Math.atan2(ship.y - enemy.y, ship.x - enemy.x);
+    }
+    
+    ctx.rotate(rotationAngle);
 
     if (enemy.type === 'serpent') {
         ctx.fillStyle = enemy.color; 
@@ -247,10 +248,54 @@ function drawEnemy(ctx, enemy) {
         ctx.beginPath(); ctx.arc(15, 0, 10, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(18, -3, 2, 0, Math.PI*2); ctx.arc(18, 3, 2, 0, Math.PI*2); ctx.fill();
     } else if(enemy.type === 'boss') {
+        // --- SHIP-LIKE BOSS VISUAL ---
+        
+        // 1. Hull (Elongated oval/ship shape)
+        ctx.fillStyle = '#2a0a0a'; // Very dark wood
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 50, 20, 0, 0, Math.PI*2); 
+        ctx.fill();
+        ctx.strokeStyle = '#5c2b0c';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 2. Beakhead (Front)
+        ctx.beginPath();
+        ctx.moveTo(40, -10);
+        ctx.lineTo(60, 0);
+        ctx.lineTo(40, 10);
+        ctx.fill();
+        
+        // 3. Stern / Captain's Quarters (Back)
         ctx.fillStyle = '#450a0a';
-        ctx.beginPath(); ctx.moveTo(30, 0); ctx.lineTo(-30, -15); ctx.lineTo(-30, 15); ctx.fill(); 
-        ctx.fillStyle = '#7f1d1d'; ctx.fillRect(-10, -10, 20, 20); 
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+        ctx.fillRect(-45, -15, 20, 30);
+        // Windows
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(-45, -5, 5, 10);
+
+        // 4. Masts (3 circles)
+        ctx.fillStyle = '#d4d4d4'; // White sails (furled/top view)
+        ctx.beginPath(); ctx.arc(-20, 0, 6, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(10, 0, 8, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(35, 0, 5, 0, Math.PI*2); ctx.fill();
+        
+        // 5. Cannon Ports (Broadside)
+        ctx.fillStyle = '#000';
+        // Left side
+        ctx.beginPath(); ctx.arc(-15, -18, 2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5, -20, 2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(25, -18, 2, 0, Math.PI*2); ctx.fill();
+        // Right side
+        ctx.beginPath(); ctx.arc(-15, 18, 2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5, 20, 2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(25, 18, 2, 0, Math.PI*2); ctx.fill();
+        
+        // HP Bar (Fixed rotation so it doesn't spin with ship)
+        ctx.rotate(-rotationAngle); // Undo rotation for UI
+        ctx.fillStyle = 'red'; ctx.fillRect(-25, -60, 50, 6);
+        ctx.fillStyle = '#0f0'; ctx.fillRect(-25, -60, 50 * (enemy.hp / enemy.maxHp), 6);
+        ctx.strokeStyle = 'white'; ctx.lineWidth = 1; ctx.strokeRect(-25, -60, 50, 6);
+        
     } else {
         ctx.fillStyle = enemy.color; 
         ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(-15, -10); ctx.lineTo(-15, 10); ctx.fill();
@@ -259,10 +304,13 @@ function drawEnemy(ctx, enemy) {
         } else { 
             ctx.fillStyle = '#eee'; ctx.fillRect(-5, -5, 10, 10); 
         }
+        
+        // Standard HP bar
+        ctx.rotate(-rotationAngle);
+        ctx.fillStyle = 'red'; ctx.fillRect(-15, -30, 30, 4);
+        ctx.fillStyle = '#0f0'; ctx.fillRect(-15, -30, 30 * (enemy.hp / enemy.maxHp), 4);
     }
-    ctx.rotate(-faceAngle);
-    ctx.fillStyle = 'red'; ctx.fillRect(-15, -30, 30, 4);
-    ctx.fillStyle = '#0f0'; ctx.fillRect(-15, -30, 30 * (enemy.hp / enemy.maxHp), 4);
+    
     ctx.restore();
 }
 
