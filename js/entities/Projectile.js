@@ -1,9 +1,8 @@
 // Projectile entity definition
-
 import { GameState } from '../state.js';
-import { Splash } from './Particle.js';
-import { Particle } from './Particle.js';
+import { Splash, Particle } from './Particle.js';
 import { playSplash, playCrunch } from '../systems/Audio.js';
+import { takeShipDamage } from './Ship.js'; // Import the new function
 
 export class Projectile {
     constructor(x, y, vx, vy, isEnemy = false, damage = 10) {
@@ -21,8 +20,10 @@ export class Projectile {
         }
         this.x += this.vx; this.y += this.vy;
         
+        // Physics
         if (this.height > -5) { this.height += this.zVel; this.zVel -= this.gravity; }
         
+        // Water / Splash logic
         if (this.height <= 0) {
             if (this.active && this.zVel < 0 && this.height > -3) {
                 if (!this.isEnemy) { 
@@ -34,7 +35,40 @@ export class Projectile {
             }
             this.height = -1; this.vx *= 0.8; this.vy *= 0.8; this.life -= 15; 
         }
-        
         if (this.life <= 0) this.active = false;
+
+        // --- COLLISION LOGIC RESTORED ---
+        const hitHeightThreshold = this.isEnemy ? 30 : 100; 
+        
+        if (this.active && this.height < hitHeightThreshold && this.height > -5) { 
+            if (this.isEnemy) {
+                // Enemy shooting Player
+                if (GameState.ship.sinking) return;
+                const ship = GameState.ship;
+                const hitW = ship.w * 1.2; 
+                const hitH = ship.h * 1.2;
+                
+                if (this.x > ship.x - hitW/2 && this.x < ship.x + hitW/2 &&
+                    this.y > ship.y - hitH/2 && this.y < ship.y + hitH/2) {
+                    takeShipDamage(5); 
+                    this.active = false;
+                }
+            } else {
+                // Player shooting Enemies
+                for (let e of GameState.enemies) {
+                    if (!e.dead && Math.hypot(e.x - this.x, e.y - this.y) < e.size + this.size + 30) {
+                        e.takeDamage(this.damage); // Enemy needs takeDamage method
+                        
+                        // Hit FX
+                        for(let i=0; i<10; i++) {
+                            GameState.particles.push(new Particle(this.x, this.y, '#f59e0b', 2 + Math.random())); 
+                        }
+                        playCrunch(); 
+                        this.active = false; 
+                        break;
+                    }
+                }
+            }
+        }
     }
 }

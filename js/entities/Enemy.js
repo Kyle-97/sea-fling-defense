@@ -3,7 +3,8 @@ import { GameState } from '../state.js';
 import { Projectile } from './Projectile.js';
 import { Particle } from './Particle.js';
 import { playBoom } from '../systems/Audio.js';
-import { spawnFloatingText } from '../systems/UI.js'; // Circular dep fixed by passing UI functions
+import { spawnFloatingText, addGold } from '../systems/UI.js'; // Import addGold
+import { takeShipDamage } from './Ship.js'; // Import ship damage
 
 export class Enemy {
     constructor(type, canvasWidth, canvasHeight, wave) {
@@ -48,9 +49,18 @@ export class Enemy {
         
         this.moveBehavior(dx, dy, dist, canvasWidth, ship);
 
+        // --- COLLISION / RAMMING LOGIC RESTORED ---
         if (dist < this.size + 40) { 
-            // Collision logic handled in main/ship
-            this.toExplode = true; // Flag for main loop to handle damage
+            takeShipDamage(10); 
+            
+            // Spawn FX
+            for(let i=0; i<15; i++) {
+                GameState.particles.push(new Particle(this.x, this.y, '#fff'));
+            }
+
+            if(this.type !== 'boss') { 
+                this.dead = true; 
+            } 
             return;
         }
 
@@ -59,9 +69,32 @@ export class Enemy {
         if (this.y > canvasHeight + 50) this.dead = true;
     }
 
+    takeDamage(amt) {
+        this.hp -= amt;
+        if (this.hp <= 0) {
+            this.dead = true; 
+            GameState.enemiesKilled++;
+            
+            // Reward Logic
+            let val = 10;
+            if(this.type === 'gunboat') val = 25;
+            if(this.type === 'serpent') val = 40;
+            if(this.type === 'boss') val = 500; 
+            
+            addGold(val);
+            
+            // Spawn Death Particles
+            for(let i=0; i<10; i++) {
+                GameState.particles.push(new Particle(this.x, this.y, this.color));
+            }
+            
+            if(this.type === 'boss') {
+                spawnFloatingText(this.x, this.y, "BOSS DEFEATED!", "#ffff00");
+            }
+        }
+    }
+
     moveBehavior(dx, dy, dist, canvasWidth, ship) {
-        // ... Logic from original Enemy.update() lines 403-444 ...
-        // Copied abbreviated for brevity:
         if(this.type !== 'boss') {
             if (this.x < 20) this.x += 0.5;
             if (this.x > canvasWidth - 20) this.x -= 0.5;
@@ -78,8 +111,16 @@ export class Enemy {
              let targetY = (ship.y - 350) + (Math.cos(this.sway * 2) * 80);
              this.y += (targetY - this.y) * 0.02;
              this.angle = Math.atan2(dy, dx);
+        } else if (this.type === 'gunboat') {
+            // Orbit Logic
+            if (dist > 450) this.angle = Math.atan2(dy, dx);
+            else if (dist < 250) this.angle = Math.atan2(dy, dx) + Math.PI;
+            else this.angle = Math.atan2(dy, dx) + (Math.PI / 2) + 0.1;
+            
+            const orbitSpeed = (dist <= 450 && dist >= 250) ? this.speed * 1.5 : this.speed;
+            this.x += Math.cos(this.angle) * orbitSpeed;
+            this.y += Math.sin(this.angle) * orbitSpeed;
         } else {
-             // Standard tracking
              this.angle = Math.atan2(dy, dx);
              this.x += Math.cos(this.angle) * this.speed;
              this.y += Math.sin(this.angle) * this.speed;
@@ -100,7 +141,8 @@ export class Enemy {
                 
                 if(this.type === 'boss') {
                     GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle)*shotSpeed, Math.sin(shotAngle)*shotSpeed, true));
-                    // ... add other projectiles
+                    GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle - 0.3)*shotSpeed, Math.sin(shotAngle - 0.3)*shotSpeed, true));
+                    GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle + 0.3)*shotSpeed, Math.sin(shotAngle + 0.3)*shotSpeed, true));
                     playBoom(true);
                 } else {
                     GameState.enemyProjectiles.push(new Projectile(this.x, this.y, Math.cos(shotAngle)*shotSpeed, Math.sin(shotAngle)*shotSpeed, true));

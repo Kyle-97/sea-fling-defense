@@ -1,5 +1,4 @@
 // Game state management for Sea Fling Defense
-
 export const GameState = {
     gameActive: false,
     isPaused: false,
@@ -13,6 +12,12 @@ export const GameState = {
     enemiesToSpawn: 5,
     spawnTimer: 0,
     
+    // --- New Drag State for Shooting ---
+    isDraggingAmmo: false,
+    dragStartPos: { x: 0, y: 0, time: 0 },
+    dragCurrentPos: { x: 0, y: 0 },
+    // -----------------------------------
+
     // Lists
     projectiles: [],
     enemies: [],
@@ -61,5 +66,8 @@ export const GameState = {
         this.inPort = false; 
         this.enemiesToSpawn = 5;
         this.inMenu = true;
+        
+        // Reset Drag
+        this.isDraggingAmmo = false;
     }
 };
