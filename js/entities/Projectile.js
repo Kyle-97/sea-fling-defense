@@ -1,7 +1,7 @@
 // Projectile entity definition
 import { GameState } from '../state.js';
 import { Splash, Particle } from './Particle.js';
-import { playSplash, playCrunch } from '../systems/Audio.js';
+import { playSplash, playWoodHit } from '../systems/Audio.js';
 import { takeShipDamage } from './Ship.js'; 
 
 export class Projectile {
@@ -86,13 +86,14 @@ export class Projectile {
             } else {
                 // Player shooting Enemies
                 for (let e of GameState.enemies) {
-                    if (!e.dead && Math.hypot(e.x - this.x, e.y - this.y) < e.size + this.size + 30) {
+                    // Hitbox buffer reduced to +10 (was +30)
+                    if (!e.dead && Math.hypot(e.x - this.x, e.y - this.y) < e.size + this.size + 10) {
                         e.takeDamage(this.damage);
                         
                         for(let i=0; i<10; i++) {
                             GameState.particles.push(new Particle(this.x, this.y, '#f59e0b', 2 + Math.random())); 
                         }
-                        playCrunch(); 
+                        playWoodHit(); 
                         this.active = false; 
                         break;
                     }

@@ -247,6 +247,13 @@ function drawEnemy(ctx, enemy) {
         ctx.beginPath(); ctx.ellipse(0, 0, 30, 10, 0, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(15, 0, 10, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(18, -3, 2, 0, Math.PI*2); ctx.arc(18, 3, 2, 0, Math.PI*2); ctx.fill();
+
+        // --- ADDED HP BAR FOR SERPENT ---
+        ctx.rotate(-rotationAngle); // Un-rotate for UI
+        ctx.fillStyle = 'red'; ctx.fillRect(-20, -35, 40, 5); // Slightly larger bar
+        ctx.fillStyle = '#0f0'; ctx.fillRect(-20, -35, 40 * (enemy.hp / enemy.maxHp), 5);
+        // --------------------------------
+
     } else if(enemy.type === 'boss') {
         // --- SHIP-LIKE BOSS VISUAL ---
         

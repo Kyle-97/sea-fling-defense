@@ -3,9 +3,10 @@ import { GameState } from './state.js';
 import { CONFIG } from './constants.js';
 import { initInput } from './systems/Input.js';
 import { drawGame } from './systems/Renderer.js';
-import { initAudio, toggleMusic } from './systems/Audio.js';
-import { updateShipStats, updateCaptain, updateCrewLogistics } from './entities/Ship.js';
-import { updateHUD, initShop, spawnFloatingText, updateInGameAmmoUI } from './systems/UI.js';
+import { initAudio, toggleMusic, playReload } from './systems/Audio.js';
+import { updateShipStats, updateCaptain, updateCrewLogistics, getMainCannonStats } from './entities/Ship.js';
+// IMPORTED resetShopCosts HERE
+import { updateHUD, initShop, spawnFloatingText, updateInGameAmmoUI, resetShopCosts } from './systems/UI.js';
 import { Enemy } from './entities/Enemy.js';
 
 const canvas = document.getElementById('gameCanvas');
@@ -94,6 +95,7 @@ function spawnWaveLogic() {
 function resetGame() {
     GameState.reset();
     updateShipStats();
+    resetShopCosts(); // FIX: Reset prices here
     
     document.getElementById('startMenu').style.display = 'flex';
     document.getElementById('gameOverScreen').style.display = 'none';
@@ -154,6 +156,14 @@ function gameLoop() {
         spawnWaveLogic();
         updateCaptain();
         updateCrewLogistics(); 
+        
+        // Check for Reload Complete Sound
+        const stats = getMainCannonStats();
+        const now = Date.now();
+        if (!GameState.reloadSoundPlayed && now >= GameState.lastFireTime + stats.cooldown) {
+            playReload();
+            GameState.reloadSoundPlayed = true;
+        }
         
         GameState.enemies.forEach(e => e.update(GameState.ship, canvas.width, canvas.height));
         GameState.projectiles.forEach(p => p.update());

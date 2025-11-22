@@ -62,6 +62,16 @@ const SHOP_ITEMS = [
     }}
 ];
 
+// --- FIX: Store Base Costs ---
+SHOP_ITEMS.forEach(item => item.baseCost = item.cost);
+
+export function resetShopCosts() {
+    SHOP_ITEMS.forEach(item => {
+        item.cost = item.baseCost;
+    });
+}
+// -----------------------------
+
 export function updateHUD() {
     document.getElementById('goldDisplay').innerText = GameState.gold;
     document.getElementById('hpDisplay').innerText = Math.floor(GameState.ship.hp);
@@ -73,7 +83,7 @@ export function updateHUD() {
     updateInGameAmmoUI(); // Update ammo buttons whenever HUD updates
 }
 
-// --- NEW FUNCTION: Manage In-Game Ammo Switcher ---
+// --- Manage In-Game Ammo Switcher ---
 export function updateInGameAmmoUI() {
     const container = document.getElementById('ammoControls');
     if (!GameState.gameActive || GameState.inMenu || GameState.inPort) {
@@ -82,9 +92,8 @@ export function updateInGameAmmoUI() {
     }
     
     container.style.display = 'flex';
-    container.innerHTML = ''; // Clear and rebuild (simple reactivity)
+    container.innerHTML = ''; 
     
-    // Define display info
     const ammoTypes = [
         { id: 'standard', label: 'Standard', icon: '⚪' },
         { id: 'heavy', label: 'Heavy', icon: '⚫' },
@@ -100,7 +109,7 @@ export function updateInGameAmmoUI() {
             btn.innerHTML = `${type.icon} ${type.label}`;
             
             btn.onclick = (e) => {
-                e.stopPropagation(); // Prevent firing when clicking button
+                e.stopPropagation(); 
                 if (GameState.ship.ammo !== type.id) {
                     switchAmmoInGame(type.id);
                 }
@@ -111,21 +120,15 @@ export function updateInGameAmmoUI() {
 }
 
 function switchAmmoInGame(newType) {
-    const stats = getMainCannonStats(); // Get stats BEFORE switch for current penalty context? 
-    // Actually, getting stats of the *new* ammo might make sense, or just base penalty.
-    // Let's use the stats of the ammo we are switching TO for the reload time.
-    
     GameState.ship.ammo = newType;
     const newStats = getMainCannonStats();
     
-    // Apply 3x Reload Speed Penalty (Starts from NOW)
-    // Means the gun is jammed for 3 * cooldown.
+    // Apply 3x Reload Speed Penalty
     GameState.lastFireTime = Date.now() + (newStats.cooldown * 2); 
     
     spawnFloatingText(GameState.ship.x, GameState.ship.y - 60, "SWAPPING AMMO...", "#fcd34d");
     updateHUD();
 }
-// --------------------------------------------------
 
 export function addGold(amount) {
     GameState.gold += amount;
