@@ -19,6 +19,7 @@ export const GameState = {
     
     // --- Reload State ---
     lastFireTime: 0, 
+    reloadSoundPlayed: true, // Starts true so we don't hear it on page load
     // --------------------
 
     // Lists
@@ -89,5 +90,6 @@ export const GameState = {
         
         this.isDraggingAmmo = false;
         this.lastFireTime = 0;
+        this.reloadSoundPlayed = true;
     }
 };

@@ -105,7 +105,8 @@ function endDrag(e) {
         // ------------------
 
         playBoom();
-        GameState.lastFireTime = now; 
+        GameState.lastFireTime = now;
+        GameState.reloadSoundPlayed = false; // Flag sound as needed
     }
     
     GameState.isDraggingAmmo = false;
